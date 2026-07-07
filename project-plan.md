@@ -103,26 +103,28 @@ A personal analytics dashboard that consolidates daily finances, workouts, tasks
 
 > **The Lead builds the foundation solo** (setup, schema, auth, config) on Days 1–2; the other four don't wait — they build **mock-data-first** (see the note below). Because the Lead does setup instead of owning a big feature module, the **Chatbot becomes a fully solo role** (hardest, riskiest module) and the small **Reminders module moves to the Lead**. With no dedicated QA person, **testing is everyone's job for their own module, coordinated by the Lead.**
 >
-> *Team note:* hlaingthinphyu takes the Lead role (they were the original architect's backup, and QA coordination folds into this role). shirleyshyun-lgtm moves from Tasks to **Fitness + Tasks** — the Tasks half is already familiar. If someone else on the team is stronger on backend/Supabase setup, consider giving them the Lead role instead, since Days 1–2 hinge on it.
+> *Team note:* hlaingthinphyu takes the Lead role (they were the original architect's backup, and QA coordination folds into this role). aungkyawminhtet.sbo joins as the Fitness module owner. Each module owner is responsible for data export for their own module.
 
 ### Role, Member, Backup, Primary Scope
 
 | Role | Member | Backup | Primary Scope |
 |------|--------|--------|----------------|
-| **Lead / Platform** | hlaingthinphyu | Jolly30 | Solo setup (schema + RLS, Auth Module 1, scaffold, config) → then **Reminders (Module 5)** + Profile page + integration + deployment + QA coordination |
-| **Frontend Lead** | 6rose9 | hlaingthinphyu | Design system, routing, app shell, dashboard, reusable charts, responsive, dark mode (Module 6) |
-| **Finance & Export** | Jolly30 | shirleyshyun-lgtm | Finance Tracker + analytics (Module 2) + Data Export (Module 8) |
-| **Fitness & Tasks** | shirleyshyun-lgtm | Jolly30 | Workout Tracker (Module 3) + Task Manager (Module 4) + their analytics |
-| **AI Chatbot** | nyeinchan-lwin | hlaingthinphyu | AI Chatbot + insights + cross-module analysis (Module 7) — **undivided** |
+| **Lead / Platform** | hlaingthinphyu | 6rose9 | Solo setup (schema + RLS, Auth Module 1, scaffold, config) → then **Task Manager (Module 4)** + integration + deployment + QA coordination |
+| **Frontend Lead** | 6rose9 | hlaingthinphyu | Auth & Profile (Module 1), Dashboard (Module 6), design system, routing, app shell, reusable charts, responsive, dark mode |
+| **Finance** | shirleyshyun-lgtm | aungkyawminhtet.sbo | Finance Tracker + analytics (Module 2) + Data Export for finance |
+| **Fitness** | aungkyawminhtet.sbo | shirleyshyun-lgtm | Workout Tracker (Module 3) + analytics + Data Export for workouts |
+| **Reminders** | Jolly30 | hlaingthinphyu | Reminder System (Module 5) + Data Export for reminders |
+| **AI Chatbot** | nyeinchan-lwin | hlaingthinphyu | AI Chatbot + insights + cross-module analysis (Module 7) + Data Export for chat history |
 
 ### Collaboration Map
 
 ```
-hlaingthinphyu (Lead) ── builds foundation solo (Days 1-2), then Reminders; reviews all PRs, integrates
-                            ├── 6rose9 (Frontend)             ↔ backup: hlaingthinphyu
-                            ├── Jolly30 (Finance + Export)    ↔ backup: shirleyshyun-lgtm
-                            ├── shirleyshyun-lgtm (Fitness + Tasks) ↔ backup: Jolly30
-                            └── nyeinchan-lwin (Chatbot)      ↔ backup: hlaingthinphyu
+hlaingthinphyu (Lead) ── builds foundation solo (Days 1-2), then Tasks; reviews all PRs, integrates
+                            ├── 6rose9 (Frontend + Auth + Dashboard) ↔ backup: hlaingthinphyu
+                            ├── shirleyshyun-lgtm (Finance)         ↔ backup: aungkyawminhtet.sbo
+                            ├── aungkyawminhtet.sbo (Fitness)       ↔ backup: shirleyshyun-lgtm
+                            ├── Jolly30 (Reminders)                 ↔ backup: hlaingthinphyu
+                            └── nyeinchan-lwin (Chatbot)            ↔ backup: hlaingthinphyu
 ```
 
 ### Detailed Per-Member Breakdown
@@ -139,8 +141,8 @@ hlaingthinphyu (Lead) ── builds foundation solo (Days 1-2), then Reminders; 
 - Build the **Finance reference module** and give a 15-min walkthrough of the pattern
 
 **Week 1 (Days 3–5):**
-- Reminders (Module 5): CRUD, repeat options, Supabase Realtime notifications + bell
-- Finish the User Profile page (Module 1.2)
+- Task Manager (Module 4): CRUD, priority, due dates, status filtering
+- Data Export for tasks
 
 **Week 2:**
 - Integration: wire all modules together, resolve cross-module data needs
@@ -158,6 +160,7 @@ hlaingthinphyu (Lead) ── builds foundation solo (Days 1-2), then Reminders; 
 - Build reusable Recharts wrappers (line, pie, bar) for all modules to reuse
 - Implement dark mode toggle
 - Build against the posted data shapes (mock-data-first) until the schema lands
+- Auth & Profile (Module 1): profile page, display name, calorie/budget targets
 
 **Week 2:**
 - Build Dashboard (Module 6): overview widgets, date-range selector, period comparison
@@ -167,7 +170,22 @@ hlaingthinphyu (Lead) ── builds foundation solo (Days 1-2), then Reminders; 
 
 ---
 
-#### Jolly30 — Finance & Export
+#### Jolly30 — Reminders
+**Week 1:**
+- Reminder CRUD (Module 5): create, edit, delete, toggle on/off
+- Repeat options (none, daily, weekly, monthly)
+- Date/time picker for remind_at
+- Seed sample reminder data
+
+**Week 2:**
+- Supabase Realtime notifications + notification bell
+- Overdue reminder alerts
+- Reminder analytics (adherence rate, common types)
+- Data Export for reminders
+
+---
+
+#### shirleyshyun-lgtm — Finance
 **Week 1:**
 - Finance data functions against Supabase (CRUD, filters, budgets)
 - Finance logging form (add income/expense), transaction list with filters + search
@@ -177,23 +195,22 @@ hlaingthinphyu (Lead) ── builds foundation solo (Days 1-2), then Reminders; 
 **Week 2:**
 - Finance analytics (category breakdown, trends, income vs expense)
 - Feed finance data into chatbot context
-- Data Export module (CSV/JSON with date range) — Module 8
+- Data Export for finance (CSV/JSON with date range)
 - Edge cases: delete confirmation, edit validation; write finance tests
 
 ---
 
-#### shirleyshyun-lgtm — Fitness & Tasks
+#### aungkyawminhtet.sbo — Fitness
 **Week 1:**
 - Workout data functions (CRUD, filters, exercise types) + logging form
 - Workout history list with filters; exercise type management
-- Task data functions (CRUD, priority, due dates) + task list
-- Seed sample workout + task data
+- Seed sample workout data
 
 **Week 2:**
 - Workout analytics (frequency, PRs, streaks, simple body map)
-- Task analytics (completion rate, overdue count, productivity trend)
-- Feed workout + task data into chatbot context
-- Overdue task auto-highlighting; write workout + task tests
+- Feed workout data into chatbot context
+- Data Export for workouts
+- Write workout tests
 
 ---
 

@@ -390,11 +390,13 @@ Once the reference module works, split into the 5 roles and build in parallel:
 
 | Member | Owns |
 |---|---|
-| Lead / Platform | Schema, auth, integration, deploy, keep-alive, QA coordination |
-| Frontend Lead | Design system, dashboard, charts, responsive, polish |
-| Finance + Export | Finance module + analytics + CSV/JSON export |
-| Fitness + Tasks | Workout module + Task module + their analytics |
-| Chatbot + Reminders | AI chatbot + insights; Reminders as the week-1 warm-up |
+| hlaingthinphyu (Lead / Platform) | Tasks module, schema, auth, integration, deploy, keep-alive, QA coordination |
+| 6rose9 (Frontend Lead) | Auth & Profile, Dashboard, design system, charts, responsive, polish |
+| shirleyshyun-lgtm (Finance) | Finance module + analytics |
+| aungkyawminhtet.sbo (Fitness) | Workout module + analytics |
+| Jolly30 (Reminders) | Reminders module |
+| nyeinchan-lwin (Chatbot) | AI chatbot + insights |
+| Each module owner | Data export for their module |
 
 ---
 
