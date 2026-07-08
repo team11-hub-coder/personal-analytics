@@ -6,6 +6,17 @@ import { useUIStore } from "@/store/ui";
 import { useLogout } from "@/hooks/useAuth";
 import { sidebar } from "@/lib/theme";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
   LayoutDashboard,
   DollarSign,
   Dumbbell,
@@ -98,14 +109,31 @@ export default function Sidebar() {
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
             {theme === "light" ? "Dark Mode" : "Light Mode"}
           </button>
-          <button
-            onClick={() => logout.mutate()}
-            disabled={logout.isPending}
-            className={sidebar.footerButton}
-          >
-            <LogOut size={18} />
-            Logout
-          </button>
+          <Dialog>
+            <DialogTrigger
+              disabled={logout.isPending}
+              className={sidebar.footerButton}
+            >
+              <LogOut size={18} />
+              Logout
+            </DialogTrigger>
+            <DialogContent showCloseButton={false}>
+              <DialogHeader>
+                <DialogTitle>Confirm Logout</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to log out?
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose render={<Button variant="outline" />}>
+                  Cancel
+                </DialogClose>
+                <Button onClick={() => logout.mutate()}>
+                  Logout
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </aside>
     </>
