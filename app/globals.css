@@ -117,6 +117,49 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Life Dashboard theme tokens */
+:root {
+  --color-primary: #8b6914;
+  --color-primary-hover: #a67c00;
+  --color-accent: #c9a96e;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-bg: #faf6f1;
+  --color-surface: #fff9f2;
+  --color-surface-hover: #f3ece3;
+  --color-border: #e8dfd4;
+  --color-text: #2c2416;
+  --color-text-secondary: #7a6e5e;
+  --color-text-muted: #a89b8a;
+  --color-sidebar-bg: #1e293b;
+  --color-sidebar-hover: #334155;
+  --color-accent-gradient-from: #8b6914;
+  --color-accent-gradient-to: #c9a96e;
+}
+
+.dark {
+  --color-bg: #0c0a1a;
+  --color-surface: #1a1330;
+  --color-surface-hover: #261d40;
+  --color-border: #2d2548;
+  --color-text: #f0e6f6;
+  --color-text-secondary: #b8a0cc;
+  --color-text-muted: #7a6490;
+  --color-sidebar-bg: #110e24;
+  --color-sidebar-hover: #1a1330;
+  --color-accent-gradient-from: #c026d3;
+  --color-accent-gradient-to: #818cf8;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
