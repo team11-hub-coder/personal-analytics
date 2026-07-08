@@ -1,0 +1,73 @@
+"use client";
+
+import { useState } from "react";
+import Sidebar from "@/components/layout/Sidebar";
+import MobileHeader from "@/components/layout/MobileHeader";
+import ChatPanel, { ChatFloatingButton } from "@/components/chat/ChatPanel";
+
+export default function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatFullscreen, setChatFullscreen] = useState(false);
+
+  return (
+    <div className="flex h-dvh overflow-hidden bg-background">
+      <Sidebar />
+
+      {/* Main content — only this column scrolls */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto hide-scrollbar">
+        <MobileHeader />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+      </div>
+
+      {/* Desktop chat sidebar (xl+) */}
+      {!chatFullscreen && (
+        <div className="hidden xl:block">
+          <ChatPanel
+            open={chatOpen}
+            onClose={() => setChatOpen(false)}
+            desktop
+            onToggleFullscreen={() => setChatFullscreen(true)}
+          />
+        </div>
+      )}
+
+      {/* Mobile/Tablet chat overlay */}
+      <div className="xl:hidden">
+        <ChatPanel
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          onToggleFullscreen={() => setChatFullscreen(true)}
+        />
+      </div>
+
+      {/* Fullscreen chat */}
+      {chatFullscreen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => setChatFullscreen(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
+            <div className="w-full h-full max-w-4xl bg-[var(--color-surface)] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+              <ChatPanel
+                open={true}
+                onClose={() => setChatFullscreen(false)}
+                fullscreen
+                onToggleFullscreen={() => setChatFullscreen(false)}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Floating chat button */}
+      {!chatFullscreen && !chatOpen && (
+        <ChatFloatingButton onClick={() => setChatOpen(true)} />
+      )}
+    </div>
+  );
+}
