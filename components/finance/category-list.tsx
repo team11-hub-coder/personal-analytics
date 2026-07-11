@@ -244,7 +244,11 @@ function CategoryItem({
 
   const onDelete = () => {
     if (confirm(`Delete "${category.name}"?`)) {
-      deleteCategory.mutate(category.id);
+      deleteCategory.mutate(category.id, {
+        onError: (error) => {
+          alert(error.message);
+        },
+      });
     }
   };
 

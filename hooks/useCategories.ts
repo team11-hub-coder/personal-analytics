@@ -78,6 +78,37 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: async (id: number) => {
+      // Check if category is used in transactions
+      const { count: transCount } = await supabase
+        .from("transactions")
+        .select("*", { count: "exact", head: true })
+        .eq("category_id", id);
+
+      if (transCount && transCount > 0) {
+        throw new Error("Cannot delete: category has existing transactions");
+      }
+
+      // Check if category is used in recurring templates
+      const { count: recurCount } = await supabase
+        .from("recurring_templates")
+        .select("*", { count: "exact", head: true })
+        .eq("category_id", id);
+
+      if (recurCount && recurCount > 0) {
+        throw new Error("Cannot delete: category has recurring templates");
+      }
+
+      // Check if category is used in budgets
+      const { count: budgetCount } = await supabase
+        .from("budgets")
+        .select("*", { count: "exact", head: true })
+        .eq("category_id", id);
+
+      if (budgetCount && budgetCount > 0) {
+        throw new Error("Cannot delete: category has budgets");
+      }
+
+      // Safe to delete
       const { error } = await supabase.from("categories").delete().eq("id", id);
 
       if (error) throw error;
