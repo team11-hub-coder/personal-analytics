@@ -6,6 +6,7 @@ import {
   useUpdateTask,
   useDeleteTask,
   useToggleTaskStatus,
+  useTaskCategories,
 } from "@/hooks/useTasks";
 import { card, button, list } from "@/lib/theme";
 import {
@@ -18,11 +19,11 @@ import {
   AlertCircle,
   Calendar,
   Filter,
-  X,
+  Tag,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import TaskForm from "./task-form";
-import type { Task } from "@/types";
+import type { TaskWithCategory } from "@/types";
 
 type StatusFilter = "all" | "pending" | "completed" | "overdue";
 type SortBy = "priority" | "due_date" | "created_at";
@@ -38,11 +39,17 @@ const priorityOrder = { high: 0, medium: 1, low: 2 };
 export default function TaskList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortBy, setSortBy] = useState<SortBy>("created_at");
+  const [categoryFilter, setCategoryFilter] = useState<number | undefined>();
   const [isAdding, setIsAdding] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingTask, setEditingTask] = useState<TaskWithCategory | null>(null);
 
-  const filters = statusFilter === "all" ? undefined : { status: statusFilter as "pending" | "completed" | "overdue" };
-  const { data: tasks, isLoading, error } = useTasks(filters);
+  const filters = {
+    ...(statusFilter !== "all" ? { status: statusFilter as "pending" | "completed" | "overdue" } : {}),
+    ...(categoryFilter ? { category_id: categoryFilter } : {}),
+  };
+
+  const { data: tasks, isLoading, error } = useTasks(Object.keys(filters).length > 0 ? filters : undefined);
+  const { data: categories } = useTaskCategories();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const toggleStatus = useToggleTaskStatus();
@@ -61,17 +68,17 @@ export default function TaskList() {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
-  const handleDelete = (task: Task) => {
+  const handleDelete = (task: TaskWithCategory) => {
     if (window.confirm(`Delete "${task.title}"?`)) {
       deleteTask.mutate(task.id);
     }
   };
 
-  const handleToggleStatus = (task: Task) => {
+  const handleToggleStatus = (task: TaskWithCategory) => {
     toggleStatus.mutate({ id: task.id, currentStatus: task.status });
   };
 
-  const isOverdue = (task: Task) => {
+  const isOverdue = (task: TaskWithCategory) => {
     if (task.status === "completed" || !task.due_date) return false;
     return new Date(task.due_date) < new Date(new Date().toDateString());
   };
@@ -111,7 +118,7 @@ export default function TaskList() {
     <div className="space-y-4">
       {/* Header with filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Filter size={16} className="text-[var(--color-text-muted)]" />
           <div className="flex gap-1">
             {(["all", "pending", "completed", "overdue"] as const).map((status) => (
@@ -128,6 +135,22 @@ export default function TaskList() {
               </button>
             ))}
           </div>
+
+          {/* Category Filter */}
+          {categories && categories.length > 0 && (
+            <select
+              value={categoryFilter || ""}
+              onChange={(e) => setCategoryFilter(e.target.value ? Number(e.target.value) : undefined)}
+              className="border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm"
+            >
+              <option value="">All categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -203,7 +226,7 @@ export default function TaskList() {
 
               {/* Task Content */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3
                     className={`font-medium ${
                       task.status === "completed"
@@ -216,6 +239,18 @@ export default function TaskList() {
                   <span className={`${list.badge} ${priorityColors[task.priority]}`}>
                     {task.priority}
                   </span>
+                  {task.task_categories && (
+                    <span
+                      className={`${list.badge} flex items-center gap-1`}
+                      style={{
+                        backgroundColor: task.task_categories.color ? `${task.task_categories.color}20` : undefined,
+                        color: task.task_categories.color || undefined,
+                      }}
+                    >
+                      <Tag size={10} />
+                      {task.task_categories.name}
+                    </span>
+                  )}
                 </div>
                 {task.description && (
                   <p className="text-sm text-[var(--color-text-secondary)] mt-1 truncate">
