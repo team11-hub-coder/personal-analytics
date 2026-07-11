@@ -23,11 +23,33 @@ export const registerSchema = z
   });
 
 export const transactionSchema = z.object({
-  type: z.enum(["income", "expense"]),
   amount: z.number().positive("Amount must be positive"),
-  category: z.string().min(1, "Category is required"),
-  description: z.string().min(1, "Description is required"),
+  category_id: z.number().min(1, "Category is required"),
+  description: z.string().optional(),
   date: z.string().min(1, "Date is required"),
+  receipt_image_url: z.string().url().optional().nullable(),
+  entry_source: z.enum(["manual_form", "chatbot_text", "chatbot_voice", "chatbot_receipt", "recurring"]),
+});
+
+export const budgetSchema = z.object({
+  category_id: z.number().min(1, "Category is required"),
+  monthly_limit: z.number().positive("Budget must be positive"),
+});
+
+export const categorySchema = z.object({
+  name: z.string().min(1, "Category name is required").max(50, "Category name too long"),
+});
+
+export const recurringTemplateSchema = z.object({
+  amount: z.number().positive("Amount must be positive"),
+  category_id: z.number().min(1, "Category is required"),
+  description: z.string().optional(),
+  interval: z.enum(["weekly", "monthly"]),
+  next_run_date: z.string().min(1, "Start date is required"),
+});
+
+export const currencySchema = z.object({
+  currency: z.string().min(1, "Currency is required"),
 });
 
 export const workoutSchema = z.object({
@@ -59,6 +81,10 @@ export const reminderSchema = z.object({
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type TransactionFormData = z.infer<typeof transactionSchema>;
+export type BudgetFormData = z.infer<typeof budgetSchema>;
+export type CategoryFormData = z.infer<typeof categorySchema>;
+export type RecurringTemplateFormData = z.infer<typeof recurringTemplateSchema>;
+export type CurrencyFormData = z.infer<typeof currencySchema>;
 export type WorkoutFormData = z.infer<typeof workoutSchema>;
 export type TaskFormData = z.infer<typeof taskSchema>;
 export type ReminderFormData = z.infer<typeof reminderSchema>;
