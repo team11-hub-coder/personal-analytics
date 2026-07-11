@@ -1,0 +1,626 @@
+"use client";
+
+import { useState } from "react";
+import {
+  useTransactions,
+  useUpdateTransaction,
+  useDeleteTransaction,
+} from "@/hooks/useExpenses";
+import { useCategories } from "@/hooks/useCategories";
+import { useProfile } from "@/hooks/useProfile";
+import { card, button } from "@/lib/theme";
+import { formatCurrency } from "@/lib/currency";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  Receipt,
+  X,
+  Check,
+  Filter,
+  AlertCircle,
+  Calendar,
+  Utensils,
+  Car,
+  Zap,
+  ShoppingBag,
+  Gamepad2,
+  Heart,
+  BookOpen,
+  MoreHorizontal,
+} from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import ExpenseForm from "./expense-form";
+
+export default function ExpenseList() {
+  const { data: transactions, isLoading, error } = useTransactions();
+  const { data: categories } = useCategories();
+  const { data: profile } = useProfile();
+  const [isAdding, setIsAdding] = useState(false);
+  const [filterMonth, setFilterMonth] = useState<string>(
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`
+  );
+  const [filterCategory, setFilterCategory] = useState<number | undefined>();
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const currency = profile?.currency || "MMK";
+
+  // Get unique months from transactions
+  const months = [
+    ...new Set(transactions?.map((t) => t.date.substring(0, 7)) || []),
+  ].sort().reverse();
+
+  // Min date is year 2000
+  const minDate = "2000-01-01";
+
+  // Calculate max date from (3 months before end date)
+  const getMaxFromDate = (endDate: string): string => {
+    if (!endDate) return "";
+    const end = new Date(endDate);
+    const maxStart = new Date(end);
+    maxStart.setMonth(maxStart.getMonth() - 3);
+    return maxStart < new Date(minDate) ? minDate : maxStart.toISOString().split("T")[0];
+  };
+
+  // Calculate min date for end date (must be after start date)
+  const getMinEndDate = (startDate: string): string => {
+    return startDate || minDate;
+  };
+
+  // Validate date range
+  const dateRangeError = (() => {
+    if (filterDateFrom && filterDateTo) {
+      if (filterDateFrom > filterDateTo) {
+        return "End date cannot be before start date";
+      }
+      const from = new Date(filterDateFrom);
+      const to = new Date(filterDateTo);
+      const diffMonths =
+        (to.getFullYear() - from.getFullYear()) * 12 +
+        (to.getMonth() - from.getMonth());
+      if (diffMonths > 3) {
+        return "Maximum range is 3 months";
+      }
+    }
+    return null;
+  })();
+
+  // Filter transactions
+  const filteredTransactions =
+    transactions?.filter((t) => {
+      // Skip filtering if date range has error
+      if (dateRangeError) return true;
+
+      // Month filter
+      if (filterMonth && !showAdvanced) {
+        if (!t.date.startsWith(filterMonth)) return false;
+      }
+
+      // Date range filter (advanced)
+      if (showAdvanced) {
+        if (filterDateFrom && t.date < filterDateFrom) return false;
+        if (filterDateTo && t.date > filterDateTo) return false;
+      }
+
+      // Category filter
+      if (filterCategory && t.category_id !== filterCategory) return false;
+
+      return true;
+    }) || [];
+
+  // Calculate total for filtered transactions
+  const totalFiltered = filteredTransactions.reduce(
+    (sum, t) => sum + Number(t.amount),
+    0
+  );
+
+  const clearFilters = () => {
+    setFilterMonth(
+      `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`
+    );
+    setFilterCategory(undefined);
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
+
+  const hasActiveFilters =
+    filterCategory || (showAdvanced && (filterDateFrom || filterDateTo));
+
+  // Error state
+  if (error) {
+    return (
+      <div className={card.base}>
+        <div className="text-center py-8">
+          <AlertCircle
+            size={48}
+            className="mx-auto text-red-400 mb-3"
+          />
+          <p className="text-[var(--color-text)] font-medium">
+            Failed to load transactions
+          </p>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            {error.message || "Please try again later"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className={card.base}>
+        <Skeleton className="h-6 w-32 mb-4" />
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={card.base}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-[var(--color-text)]">Transactions</h3>
+        <button
+          onClick={() => setIsAdding(true)}
+          className={`flex items-center gap-2 ${button.primary} px-3 py-1.5 rounded-lg text-sm`}
+        >
+          <Plus size={14} />
+          Add Expense
+        </button>
+      </div>
+
+      {/* Filters - Always on top */}
+      <div className="mb-4 p-3 bg-[var(--color-surface-hover)] rounded-lg">
+        <div className="flex flex-wrap items-center gap-3">
+          <Filter size={14} className="text-[var(--color-text-muted)]" />
+
+          {!showAdvanced ? (
+            // Simple mode: Month dropdown
+            <select
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm"
+            >
+              <option value="">All months</option>
+              {months.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          ) : (
+            // Advanced mode: Date range
+            <div className="flex items-center gap-2">
+              <Calendar size={14} className="text-[var(--color-text-muted)]" />
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => {
+                  const newFrom = e.target.value;
+                  setFilterDateFrom(newFrom);
+                  // Clear end date if it's now invalid
+                  if (filterDateTo && newFrom > filterDateTo) {
+                    setFilterDateTo("");
+                  }
+                }}
+                max={filterDateTo || ""}
+                className="border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm"
+                placeholder="From"
+              />
+              <span className="text-[var(--color-text-muted)]">to</span>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => {
+                  const newTo = e.target.value;
+                  setFilterDateTo(newTo);
+                  // Clear start date if it's now invalid
+                  if (filterDateFrom && filterDateFrom > newTo) {
+                    setFilterDateFrom("");
+                  }
+                }}
+                min={getMinEndDate(filterDateFrom)}
+                className="border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm"
+                placeholder="To"
+              />
+            </div>
+          )}
+
+          {/* Category filter */}
+          <select
+            value={filterCategory || ""}
+            onChange={(e) =>
+              setFilterCategory(
+                e.target.value ? Number(e.target.value) : undefined
+              )
+            }
+            className="border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm"
+          >
+            <option value="">All categories</option>
+            {categories?.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Toggle simple/advanced */}
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="text-xs text-[var(--color-primary)] hover:underline"
+          >
+            {showAdvanced ? "Simple" : "Advanced"}
+          </button>
+
+          {/* Clear filters */}
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-xs text-red-500 hover:underline"
+            >
+              Clear
+            </button>
+          )}
+
+          {/* Total */}
+          <span className="text-sm text-[var(--color-text-secondary)] ml-auto">
+            Total: {formatCurrency(totalFiltered, currency)}
+          </span>
+        </div>
+
+        {/* Date range error */}
+        {dateRangeError && (
+          <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+            <AlertCircle size={12} />
+            {dateRangeError}
+          </p>
+        )}
+      </div>
+
+      {/* Add form - Below filters */}
+      {isAdding && (
+        <div className="mb-4">
+          <ExpenseForm
+            onSuccess={() => setIsAdding(false)}
+            onCancel={() => setIsAdding(false)}
+          />
+        </div>
+      )}
+
+      {/* Transaction list - Grouped by Date, then Category */}
+      {filteredTransactions.length > 0 ? (
+        <GroupedTransactions
+          transactions={filteredTransactions}
+          currency={currency}
+        />
+
+      ) : (
+        !isAdding && (
+          <div className="text-center py-8">
+            <Receipt
+              size={48}
+              className="mx-auto text-[var(--color-text-muted)] mb-3"
+            />
+            <p className="text-[var(--color-text-secondary)]">
+              {hasActiveFilters
+                ? "No transactions match your filters"
+                : "No transactions yet"}
+            </p>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">
+              {hasActiveFilters
+                ? "Try adjusting your filters"
+                : "Add your first expense to get started"}
+            </p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="mt-3 text-sm text-[var(--color-primary)] hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// Group transactions by Date, then by Category
+function GroupedTransactions({
+  transactions,
+  currency,
+}: {
+  transactions: {
+    id: number;
+    amount: number;
+    date: string;
+    description: string | null;
+    entry_source: string | null;
+    category_id: number | null;
+    categories: { id: number; name: string } | null;
+  }[];
+  currency: string;
+}) {
+  // Group by date
+  const groupedByDate = transactions.reduce(
+    (acc, t) => {
+      const date = t.date;
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(t);
+      return acc;
+    },
+    {} as Record<string, typeof transactions>
+  );
+
+  // Sort dates descending
+  const sortedDates = Object.keys(groupedByDate).sort().reverse();
+
+  const formatDateHeader = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {sortedDates.map((date) => {
+        const dayTransactions = groupedByDate[date];
+        const dayTotal = dayTransactions.reduce(
+          (sum, t) => sum + Number(t.amount),
+          0
+        );
+
+        // Group by category within this date
+        const groupedByCategory = dayTransactions.reduce(
+          (acc, t) => {
+            const catId = t.category_id || 0;
+            const catName = t.categories?.name || "Uncategorized";
+            if (!acc[catId]) {
+              acc[catId] = { name: catName, transactions: [], total: 0 };
+            }
+            acc[catId].transactions.push(t);
+            acc[catId].total += Number(t.amount);
+            return acc;
+          },
+          {} as Record<
+            number,
+            { name: string; transactions: typeof transactions; total: number }
+          >
+        );
+
+        return (
+          <div key={date}>
+            {/* Date header */}
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold text-[var(--color-text)]">
+                {formatDateHeader(date)}
+              </h4>
+              <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                {formatCurrency(dayTotal, currency)}
+              </span>
+            </div>
+
+            {/* Categories within this date */}
+            <div className="space-y-2 ml-2">
+              {Object.entries(groupedByCategory).map(
+                ([catId, { name, transactions: catTransactions, total }]) => (
+                  <div key={catId}>
+                    {/* Category header */}
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
+                        {name}
+                      </span>
+                      <span className="text-xs text-[var(--color-text-muted)]">
+                        {formatCurrency(total, currency)}
+                      </span>
+                    </div>
+
+                    {/* Transactions in this category */}
+                    <div className="space-y-1">
+                      {catTransactions.map((transaction) => (
+                        <ExpenseItem
+                          key={transaction.id}
+                          transaction={transaction}
+                          currency={currency}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ExpenseItem({
+  transaction,
+  currency,
+}: {
+  transaction: {
+    id: number;
+    amount: number;
+    date: string;
+    description: string | null;
+    entry_source: string | null;
+    categories: { id: number; name: string } | null;
+  };
+  currency: string;
+}) {
+  const updateTransaction = useUpdateTransaction();
+  const deleteTransaction = useDeleteTransaction();
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleDelete = () => {
+    if (confirm("Delete this transaction?")) {
+      deleteTransaction.mutate(transaction.id);
+    }
+  };
+
+  const getCategoryIcon = (categoryName: string | null) => {
+    const icons: Record<string, { icon: React.ReactNode; color: string }> = {
+      food: { icon: <Utensils size={14} />, color: "bg-orange-50 text-orange-500" },
+      transport: { icon: <Car size={14} />, color: "bg-blue-50 text-blue-500" },
+      utilities: { icon: <Zap size={14} />, color: "bg-yellow-50 text-yellow-500" },
+      shopping: { icon: <ShoppingBag size={14} />, color: "bg-pink-50 text-pink-500" },
+      entertainment: { icon: <Gamepad2 size={14} />, color: "bg-purple-50 text-purple-500" },
+      health: { icon: <Heart size={14} />, color: "bg-red-50 text-red-500" },
+      education: { icon: <BookOpen size={14} />, color: "bg-indigo-50 text-indigo-500" },
+    };
+    const key = categoryName?.toLowerCase() || "";
+    return icons[key] || { icon: <MoreHorizontal size={14} />, color: "bg-gray-50 text-gray-500" };
+  };
+
+  const getSourceBadge = (source: string | null) => {
+    const badges: Record<string, { label: string; color: string }> = {
+      manual_form: { label: "M", color: "bg-gray-100 text-gray-600" },
+      chatbot_text: { label: "C", color: "bg-blue-100 text-blue-600" },
+      chatbot_voice: { label: "V", color: "bg-purple-100 text-purple-600" },
+      chatbot_receipt: {
+        label: "R",
+        color: "bg-amber-100 text-amber-600",
+      },
+      recurring: {
+        label: "Re",
+        color: "bg-emerald-100 text-emerald-600",
+      },
+    };
+    const badge = badges[source || "manual_form"] || badges.manual_form;
+    return (
+      <span
+        className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${badge.color}`}
+        title={
+          source === "manual_form"
+            ? "Manual"
+            : source === "chatbot_text"
+            ? "Chat"
+            : source === "chatbot_voice"
+            ? "Voice"
+            : source === "chatbot_receipt"
+            ? "Receipt"
+            : "Recurring"
+        }
+      >
+        {badge.label}
+      </span>
+    );
+  };
+
+  if (isEditing) {
+    return (
+      <div className="p-3 bg-[var(--color-surface-hover)] rounded-lg">
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <input
+            type="number"
+            step="1"
+            defaultValue={transaction.amount}
+            id={`edit-amount-${transaction.id}`}
+            className="border border-[var(--color-border)] rounded px-2 py-1 text-sm"
+          />
+          <input
+            type="text"
+            defaultValue={transaction.description || ""}
+            id={`edit-desc-${transaction.id}`}
+            className="border border-[var(--color-border)] rounded px-2 py-1 text-sm"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const amount = document.getElementById(
+                `edit-amount-${transaction.id}`
+              ) as HTMLInputElement;
+              const desc = document.getElementById(
+                `edit-desc-${transaction.id}`
+              ) as HTMLInputElement;
+              updateTransaction.mutate(
+                {
+                  id: transaction.id,
+                  amount: parseFloat(amount.value),
+                  description: desc.value,
+                },
+                { onSuccess: () => setIsEditing(false) }
+              );
+            }}
+            disabled={updateTransaction.isPending}
+            className={`${button.primary} px-3 py-1 rounded-lg text-sm`}
+          >
+            {updateTransaction.isPending ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <Check size={12} />
+            )}
+          </button>
+          <button
+            onClick={() => setIsEditing(false)}
+            className={`${button.ghost} px-3 py-1 rounded-lg text-sm`}
+          >
+            <X size={12} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between p-2 bg-[var(--color-surface-hover)] rounded-lg group">
+      <div className="flex items-center gap-3">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIcon(transaction.categories?.name).color}`}>
+          {getCategoryIcon(transaction.categories?.name).icon}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-[var(--color-text)]">
+            {transaction.description || transaction.categories?.name || "Uncategorized"}
+          </span>
+          {getSourceBadge(transaction.entry_source)}
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-semibold text-[var(--color-text)]">
+          {formatCurrency(Number(transaction.amount), currency)}
+        </span>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => setIsEditing(true)}
+            className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+          >
+            <Pencil size={12} />
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleteTransaction.isPending}
+            className="p-1 text-[var(--color-text-muted)] hover:text-red-500"
+          >
+            {deleteTransaction.isPending ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <Trash2 size={12} />
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

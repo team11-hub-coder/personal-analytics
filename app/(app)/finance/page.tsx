@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CategoryList from "@/components/finance/category-list";
 import BudgetList from "@/components/finance/budget-list";
+import ExpenseList from "@/components/finance/expense-list";
 import { useProfile } from "@/hooks/useProfile";
 import { useTransactions } from "@/hooks/useExpenses";
 import { formatCurrency } from "@/lib/currency";
@@ -122,15 +123,8 @@ export default function FinancePage() {
       {/* Budgets */}
       <BudgetList />
 
-      {/* Transaction List Placeholder */}
-      <div className="bg-[var(--color-surface)] rounded-xl p-6 shadow-sm border border-[var(--color-border)]">
-        <h3 className="font-semibold text-[var(--color-text)] mb-4">
-          Transactions
-        </h3>
-        <p className="text-[var(--color-text-muted)] text-sm">
-          Transaction list coming soon
-        </p>
-      </div>
+      {/* Transactions */}
+      <ExpenseList />
     </div>
   );
 }
