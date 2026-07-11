@@ -2,6 +2,7 @@
 
 import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CategoryList from "@/components/finance/category-list";
 
 const summaryCards = [
   {
@@ -86,6 +87,9 @@ export default function FinancePage() {
           </p>
         </div>
       </div>
+
+      {/* Categories */}
+      <CategoryList />
 
       {/* Budget Progress Placeholder */}
       <div className="bg-[var(--color-surface)] rounded-xl p-6 shadow-sm border border-[var(--color-border)]">
