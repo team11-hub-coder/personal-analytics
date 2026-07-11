@@ -71,6 +71,14 @@ export interface Workout {
   created_at: string;
 }
 
+export interface TaskCategory {
+  id: number;
+  user_id: string;
+  name: string;
+  color: string | null;
+  created_at: string;
+}
+
 export interface WorkoutTemplate {
   id: string;
   user_id: string;
@@ -99,17 +107,29 @@ export interface GeneratedWorkout {
   duration: number;
   exercises: WorkoutExercise[];
 }
-
 export interface Task {
   id: number;
   user_id: string;
+  category_id: number | null;
   title: string;
   description: string;
   priority: "low" | "medium" | "high";
+  priority_rank: number;
   status: "pending" | "completed";
   due_date: string | null;
   completed_at: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+// Task with joined category info
+export interface TaskWithCategory extends Task {
+  task_categories: { id: number; name: string; color: string } | null;
+}
+
+// Task from the view with effective_status
+export interface TaskView extends Task {
+  effective_status: "pending" | "completed" | "overdue";
 }
 
 export interface Reminder {

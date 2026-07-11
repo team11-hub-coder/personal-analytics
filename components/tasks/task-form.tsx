@@ -2,15 +2,15 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCreateTask, useUpdateTask } from "@/hooks/useTasks";
+import { useCreateTask, useUpdateTask, useTaskCategories } from "@/hooks/useTasks";
 import { taskSchema, type TaskFormData } from "@/lib/validations";
 import { button } from "@/lib/theme";
 import { Plus, Loader2, X, Pencil } from "lucide-react";
-import type { Task } from "@/types";
+import type { TaskWithCategory } from "@/types";
 
 interface TaskFormProps {
   /** If provided, form is in edit mode */
-  task?: Task;
+  task?: TaskWithCategory;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
@@ -18,6 +18,7 @@ interface TaskFormProps {
 export default function TaskForm({ task, onSuccess, onCancel }: TaskFormProps) {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
+  const { data: categories } = useTaskCategories();
 
   const isEditMode = !!task;
 
@@ -34,6 +35,7 @@ export default function TaskForm({ task, onSuccess, onCancel }: TaskFormProps) {
           description: task.description || "",
           priority: task.priority,
           due_date: task.due_date || "",
+          category_id: task.category_id || undefined,
         }
       : {
           priority: "medium",
@@ -49,6 +51,7 @@ export default function TaskForm({ task, onSuccess, onCancel }: TaskFormProps) {
           description: data.description || undefined,
           priority: data.priority,
           due_date: data.due_date || null,
+          category_id: data.category_id || null,
         },
         {
           onSuccess: () => {
@@ -64,6 +67,7 @@ export default function TaskForm({ task, onSuccess, onCancel }: TaskFormProps) {
           description: data.description || undefined,
           priority: data.priority,
           due_date: data.due_date || null,
+          category_id: data.category_id || null,
         },
         {
           onSuccess: () => {
@@ -139,6 +143,22 @@ export default function TaskForm({ task, onSuccess, onCancel }: TaskFormProps) {
           {errors.due_date && (
             <p className="text-xs text-red-500 mt-1">{errors.due_date.message}</p>
           )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+            Category
+          </label>
+          <select
+            {...register("category_id", { valueAsNumber: true })}
+            className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="">No category</option>
+            {categories?.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
