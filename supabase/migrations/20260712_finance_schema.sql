@@ -3,9 +3,6 @@
 -- Run in Supabase SQL Editor
 -- ============================================
 
--- 0. ADD CURRENCY TO PROFILES
-alter table profiles add column currency text default 'MMK';
-
 -- 1. CATEGORIES TABLE
 create table categories (
   id bigint generated always as identity primary key,

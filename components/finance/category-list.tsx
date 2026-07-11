@@ -9,6 +9,7 @@ import {
   useUpdateCategory,
   useDeleteCategory,
 } from "@/hooks/useCategories";
+import { categorySchema, type CategoryFormData } from "@/lib/validations";
 import { card, button } from "@/lib/theme";
 import { categoryIcons, getCategoryIconInfo } from "@/lib/icons";
 import {
@@ -21,14 +22,6 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { z } from "zod";
-
-const categoryFormSchema = z.object({
-  name: z.string().min(1, "Category name is required").max(50, "Category name too long"),
-  icon: z.string().min(1, "Icon is required"),
-});
-
-type CategoryFormData = z.infer<typeof categoryFormSchema>;
 
 export default function CategoryList() {
   const { data: categories, isLoading } = useCategories();
@@ -43,7 +36,7 @@ export default function CategoryList() {
     setValue,
     formState: { errors },
   } = useForm<CategoryFormData>({
-    resolver: zodResolver(categoryFormSchema),
+    resolver: zodResolver(categorySchema),
     defaultValues: { icon: "MoreHorizontal" },
   });
 
@@ -232,7 +225,7 @@ function CategoryItem({
     setValue,
     formState: { errors },
   } = useForm<CategoryFormData>({
-    resolver: zodResolver(categoryFormSchema),
+    resolver: zodResolver(categorySchema),
     defaultValues: { name: category.name, icon: category.icon },
   });
 

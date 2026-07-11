@@ -4,6 +4,7 @@ export interface Profile {
   daily_calorie_target: number;
   monthly_budget_goal: number;
   currency: string;
+  timezone: string;
   created_at: string;
 }
 
