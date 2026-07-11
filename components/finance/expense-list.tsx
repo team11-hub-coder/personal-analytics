@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -86,8 +86,10 @@ export default function ExpenseList() {
   })();
 
   // Filter transactions
-  const filteredTransactions =
-    transactions?.filter((t) => {
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return [];
+
+    return transactions.filter((t) => {
       // Skip filtering if date range has error
       if (dateRangeError) return true;
 
@@ -106,12 +108,21 @@ export default function ExpenseList() {
       if (filterCategory && t.category_id !== filterCategory) return false;
 
       return true;
-    }) || [];
+    });
+  }, [
+    transactions,
+    dateRangeError,
+    filterMonth,
+    showAdvanced,
+    filterDateFrom,
+    filterDateTo,
+    filterCategory,
+  ]);
 
   // Calculate total for filtered transactions
-  const totalFiltered = filteredTransactions.reduce(
-    (sum, t) => sum + Number(t.amount),
-    0
+  const totalFiltered = useMemo(
+    () => filteredTransactions.reduce((sum, t) => sum + Number(t.amount), 0),
+    [filteredTransactions]
   );
 
   const clearFilters = () => {
