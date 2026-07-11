@@ -6,7 +6,7 @@ import type { Budget } from "@/types";
 
 // Budget with joined category info
 export interface BudgetWithCategory extends Budget {
-  categories: { id: number; name: string } | null;
+  categories: { id: number; name: string; icon: string } | null;
 }
 
 export function useBudgets() {
@@ -17,7 +17,7 @@ export function useBudgets() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("budgets")
-        .select("*, categories(id, name)")
+        .select("*, categories(id, name, icon)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -49,7 +49,7 @@ export function useCreateBudget() {
           category_id,
           monthly_limit,
         })
-        .select("*, categories(id, name)")
+        .select("*, categories(id, name, icon)")
         .single();
 
       if (error) throw error;
@@ -77,7 +77,7 @@ export function useUpdateBudget() {
         .from("budgets")
         .update({ monthly_limit })
         .eq("id", id)
-        .select("*, categories(id, name)")
+        .select("*, categories(id, name, icon)")
         .single();
 
       if (error) throw error;

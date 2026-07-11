@@ -6,7 +6,7 @@ import type { Transaction } from "@/types";
 
 // Transaction with joined category info
 export interface TransactionWithCategory extends Transaction {
-  categories: { id: number; name: string } | null;
+  categories: { id: number; name: string; icon: string } | null;
 }
 
 interface TransactionFilters {
@@ -22,7 +22,7 @@ export function useTransactions(filters?: TransactionFilters) {
     queryFn: async () => {
       let query = supabase
         .from("transactions")
-        .select("*, categories(id, name)")
+        .select("*, categories(id, name, icon)")
         .order("date", { ascending: false });
 
       // Filter by month
@@ -80,7 +80,7 @@ export function useCreateTransaction() {
           receipt_image_url: transaction.receipt_image_url,
           entry_source: transaction.entry_source || "manual_form",
         })
-        .select("*, categories(id, name)")
+        .select("*, categories(id, name, icon)")
         .single();
 
       if (error) throw error;
@@ -111,7 +111,7 @@ export function useUpdateTransaction() {
         .from("transactions")
         .update(updates)
         .eq("id", id)
-        .select("*, categories(id, name)")
+        .select("*, categories(id, name, icon)")
         .single();
 
       if (error) throw error;

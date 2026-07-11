@@ -27,14 +27,14 @@ export function useCreateCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async ({ name, icon }: { name: string; icon: string }) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       const { data, error } = await supabase
         .from("categories")
-        .insert({ name, user_id: user!.id })
+        .insert({ name, icon, user_id: user!.id })
         .select()
         .single();
 
@@ -52,10 +52,10 @@ export function useUpdateCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, name }: { id: number; name: string }) => {
+    mutationFn: async ({ id, name, icon }: { id: number; name: string; icon: string }) => {
       const { data, error } = await supabase
         .from("categories")
-        .update({ name })
+        .update({ name, icon })
         .eq("id", id)
         .select()
         .single();

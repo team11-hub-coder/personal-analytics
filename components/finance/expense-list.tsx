@@ -21,15 +21,8 @@ import {
   Filter,
   AlertCircle,
   Calendar,
-  Utensils,
-  Car,
-  Zap,
-  ShoppingBag,
-  Gamepad2,
-  Heart,
-  BookOpen,
-  MoreHorizontal,
 } from "lucide-react";
+import { getCategoryIconInfo } from "@/lib/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import ExpenseForm from "./expense-form";
 
@@ -345,7 +338,7 @@ function GroupedTransactions({
     description: string | null;
     entry_source: string | null;
     category_id: number | null;
-    categories: { id: number; name: string } | null;
+    categories: { id: number; name: string; icon: string } | null;
   }[];
   currency: string;
 }) {
@@ -394,8 +387,9 @@ function GroupedTransactions({
           (acc, t) => {
             const catId = t.category_id || 0;
             const catName = t.categories?.name || "Uncategorized";
+            const catIcon = t.categories?.icon || "MoreHorizontal";
             if (!acc[catId]) {
-              acc[catId] = { name: catName, transactions: [], total: 0 };
+              acc[catId] = { name: catName, icon: catIcon, transactions: [], total: 0 };
             }
             acc[catId].transactions.push(t);
             acc[catId].total += Number(t.amount);
@@ -403,7 +397,7 @@ function GroupedTransactions({
           },
           {} as Record<
             number,
-            { name: string; transactions: typeof transactions; total: number }
+            { name: string; icon: string; transactions: typeof transactions; total: number }
           >
         );
 
@@ -422,13 +416,21 @@ function GroupedTransactions({
             {/* Categories within this date */}
             <div className="space-y-2 ml-2">
               {Object.entries(groupedByCategory).map(
-                ([catId, { name, transactions: catTransactions, total }]) => (
+                ([catId, { name, icon, transactions: catTransactions, total }]) => {
+                  const catIconInfo = getCategoryIconInfo(icon);
+                  const CatIcon = catIconInfo.icon;
+                  return (
                   <div key={catId}>
                     {/* Category header */}
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
-                        {name}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-4 h-4 rounded flex items-center justify-center ${catIconInfo.color}`}>
+                          <CatIcon size={10} />
+                        </div>
+                        <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
+                          {name}
+                        </span>
+                      </div>
                       <span className="text-xs text-[var(--color-text-muted)]">
                         {formatCurrency(total, currency)}
                       </span>
@@ -445,7 +447,8 @@ function GroupedTransactions({
                       ))}
                     </div>
                   </div>
-                )
+                  );
+                }
               )}
             </div>
           </div>
@@ -465,7 +468,7 @@ function ExpenseItem({
     date: string;
     description: string | null;
     entry_source: string | null;
-    categories: { id: number; name: string } | null;
+    categories: { id: number; name: string; icon: string } | null;
   };
   currency: string;
 }) {
@@ -479,18 +482,9 @@ function ExpenseItem({
     }
   };
 
-  const getCategoryIcon = (categoryName: string | null) => {
-    const icons: Record<string, { icon: React.ReactNode; color: string }> = {
-      food: { icon: <Utensils size={14} />, color: "bg-orange-50 text-orange-500" },
-      transport: { icon: <Car size={14} />, color: "bg-blue-50 text-blue-500" },
-      utilities: { icon: <Zap size={14} />, color: "bg-yellow-50 text-yellow-500" },
-      shopping: { icon: <ShoppingBag size={14} />, color: "bg-pink-50 text-pink-500" },
-      entertainment: { icon: <Gamepad2 size={14} />, color: "bg-purple-50 text-purple-500" },
-      health: { icon: <Heart size={14} />, color: "bg-red-50 text-red-500" },
-      education: { icon: <BookOpen size={14} />, color: "bg-indigo-50 text-indigo-500" },
-    };
-    const key = categoryName?.toLowerCase() || "";
-    return icons[key] || { icon: <MoreHorizontal size={14} />, color: "bg-gray-50 text-gray-500" };
+  // Get icon from category's icon field in database
+  const getCategoryIconDisplay = (iconName: string | null) => {
+    return getCategoryIconInfo(iconName || "MoreHorizontal");
   };
 
   const getSourceBadge = (source: string | null) => {
@@ -587,8 +581,11 @@ function ExpenseItem({
   return (
     <div className="flex items-center justify-between p-2 bg-[var(--color-surface-hover)] rounded-lg group">
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIcon(transaction.categories?.name).color}`}>
-          {getCategoryIcon(transaction.categories?.name).icon}
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIconDisplay(transaction.categories?.icon).color}`}>
+          {(() => {
+            const IconComp = getCategoryIconDisplay(transaction.categories?.icon).icon;
+            return <IconComp size={14} />;
+          })()}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-[var(--color-text)]">
