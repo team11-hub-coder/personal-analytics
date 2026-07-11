@@ -2,13 +2,15 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
+import { useUser } from "./useAuth";
 import type { ChatMessage } from "@/types";
 
 export function useChatMessages() {
   const supabase = createClient();
+  const { data: user, isLoading: authLoading } = useUser();
 
   return useQuery({
-    queryKey: ["chatMessages"],
+    queryKey: ["chatMessages", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("chat_messages")
@@ -18,6 +20,7 @@ export function useChatMessages() {
       if (error) throw error;
       return data as ChatMessage[];
     },
+    enabled: !authLoading && !!user,
   });
 }
 
