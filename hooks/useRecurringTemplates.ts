@@ -5,6 +5,18 @@ import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
 import type { RecurringTemplate } from "@/types";
 
+// Helper to get authenticated user or throw
+async function getAuthenticatedUser(supabase: ReturnType<typeof createClient>) {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) {
+    throw new Error("Not authenticated");
+  }
+  return user;
+}
+
 // Recurring template with joined category info
 export interface RecurringTemplateWithCategory extends RecurringTemplate {
   categories: { id: number; name: string; icon: string } | null;
@@ -41,14 +53,12 @@ export function useCreateRecurringTemplate() {
       interval: "weekly" | "monthly";
       next_run_date: string;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { data, error } = await supabase
         .from("recurring_templates")
         .insert({
-          user_id: user!.id,
+          user_id: user.id,
           amount: template.amount,
           category_id: template.category_id,
           description: template.description,
@@ -84,15 +94,13 @@ export function useUpdateRecurringTemplate() {
       next_run_date?: string;
       is_active?: boolean;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { data, error } = await supabase
         .from("recurring_templates")
         .update(updates)
         .eq("id", id)
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .select("*, categories(id, name, icon)")
         .single();
 
@@ -111,15 +119,13 @@ export function useDeleteRecurringTemplate() {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { error } = await supabase
         .from("recurring_templates")
         .delete()
         .eq("id", id)
-        .eq("user_id", user!.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
     },

@@ -5,6 +5,18 @@ import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
 import type { Profile } from "@/types";
 
+// Helper to get authenticated user or throw
+async function getAuthenticatedUser(supabase: ReturnType<typeof createClient>) {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) {
+    throw new Error("Not authenticated");
+  }
+  return user;
+}
+
 export function useProfile() {
   const supabase = createClient();
   const { data: user, isLoading: authLoading } = useUser();
@@ -68,14 +80,12 @@ export function useUpdateProfile() {
       currency?: string;
       timezone?: string;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { error } = await supabase
         .from("profiles")
         .update(updates)
-        .eq("id", user!.id);
+        .eq("id", user.id);
 
       if (error) throw error;
     },

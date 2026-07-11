@@ -5,6 +5,18 @@ import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
 import type { Budget } from "@/types";
 
+// Helper to get authenticated user or throw
+async function getAuthenticatedUser(supabase: ReturnType<typeof createClient>) {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) {
+    throw new Error("Not authenticated");
+  }
+  return user;
+}
+
 // Budget with joined category info
 export interface BudgetWithCategory extends Budget {
   categories: { id: number; name: string; icon: string } | null;
@@ -41,14 +53,12 @@ export function useCreateBudget() {
       category_id: number;
       monthly_limit: number;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { data, error } = await supabase
         .from("budgets")
         .insert({
-          user_id: user!.id,
+          user_id: user.id,
           category_id,
           monthly_limit,
         })
@@ -76,15 +86,13 @@ export function useUpdateBudget() {
       id: number;
       monthly_limit: number;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { data, error } = await supabase
         .from("budgets")
         .update({ monthly_limit })
         .eq("id", id)
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .select("*, categories(id, name, icon)")
         .single();
 
@@ -103,15 +111,13 @@ export function useDeleteBudget() {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { error } = await supabase
         .from("budgets")
         .delete()
         .eq("id", id)
-        .eq("user_id", user!.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
     },

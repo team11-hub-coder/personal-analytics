@@ -5,6 +5,18 @@ import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
 import type { Transaction } from "@/types";
 
+// Helper to get authenticated user or throw
+async function getAuthenticatedUser(supabase: ReturnType<typeof createClient>) {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) {
+    throw new Error("Not authenticated");
+  }
+  return user;
+}
+
 // Transaction with joined category info
 export interface TransactionWithCategory extends Transaction {
   categories: { id: number; name: string; icon: string } | null;
@@ -68,14 +80,12 @@ export function useCreateTransaction() {
       receipt_image_url?: string;
       entry_source?: string;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { data, error } = await supabase
         .from("transactions")
         .insert({
-          user_id: user!.id,
+          user_id: user.id,
           amount: transaction.amount,
           category_id: transaction.category_id,
           description: transaction.description,
@@ -110,15 +120,13 @@ export function useUpdateTransaction() {
       description?: string;
       date?: string;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { data, error } = await supabase
         .from("transactions")
         .update(updates)
         .eq("id", id)
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .select("*, categories(id, name, icon)")
         .single();
 
@@ -137,15 +145,13 @@ export function useDeleteTransaction() {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getAuthenticatedUser(supabase);
 
       const { error } = await supabase
         .from("transactions")
         .delete()
         .eq("id", id)
-        .eq("user_id", user!.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
     },
