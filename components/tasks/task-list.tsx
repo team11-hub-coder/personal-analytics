@@ -10,7 +10,6 @@ import {
 } from "@/hooks/useTasks";
 import { card, button, list } from "@/lib/theme";
 import {
-  Plus,
   Pencil,
   Trash2,
   Loader2,
@@ -22,7 +21,7 @@ import {
   Tag,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import TaskForm from "./task-form";
+import TaskFormModal from "./task-form-modal";
 import type { TaskWithCategory } from "@/types";
 
 type StatusFilter = "all" | "pending" | "completed" | "overdue";
@@ -40,7 +39,6 @@ export default function TaskList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortBy, setSortBy] = useState<SortBy>("created_at");
   const [categoryFilter, setCategoryFilter] = useState<number | undefined>();
-  const [isAdding, setIsAdding] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskWithCategory | null>(null);
 
   const filters = {
@@ -163,31 +161,15 @@ export default function TaskList() {
             <option value="priority">Sort by Priority</option>
             <option value="due_date">Sort by Due Date</option>
           </select>
-
-          <button
-            onClick={() => setIsAdding(!isAdding)}
-            className={`flex items-center gap-2 ${button.primary} px-3 py-1.5 rounded-lg text-sm`}
-          >
-            <Plus size={14} />
-            Add Task
-          </button>
         </div>
       </div>
 
-      {/* Add Task Form */}
-      {isAdding && (
-        <TaskForm
-          onSuccess={() => setIsAdding(false)}
-          onCancel={() => setIsAdding(false)}
-        />
-      )}
-
-      {/* Edit Task Form */}
+      {/* Edit Task Modal */}
       {editingTask && (
-        <TaskForm
+        <TaskFormModal
+          isOpen={!!editingTask}
+          onClose={() => setEditingTask(null)}
           task={editingTask}
-          onSuccess={() => setEditingTask(null)}
-          onCancel={() => setEditingTask(null)}
         />
       )}
 
