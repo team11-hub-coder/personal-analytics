@@ -2,13 +2,15 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
+import { useUser } from "./useAuth";
 import type { Profile } from "@/types";
 
 export function useProfile() {
   const supabase = createClient();
+  const { data: user, isLoading: authLoading } = useUser();
 
   return useQuery({
-    queryKey: ["profile"],
+    queryKey: ["profile", user?.id],
     queryFn: async () => {
       const {
         data: { user },
@@ -50,6 +52,7 @@ export function useProfile() {
         email: user!.email,
       } as Profile & { email: string };
     },
+    enabled: !authLoading && !!user,
   });
 }
 

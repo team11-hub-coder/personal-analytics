@@ -2,13 +2,15 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
+import { useUser } from "./useAuth";
 import type { Category } from "@/types";
 
 export function useCategories() {
   const supabase = createClient();
+  const { data: user, isLoading: authLoading } = useUser();
 
   return useQuery({
-    queryKey: ["categories"],
+    queryKey: ["categories", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("categories")
@@ -19,6 +21,7 @@ export function useCategories() {
       if (error) throw error;
       return data as Category[];
     },
+    enabled: !authLoading && !!user,
   });
 }
 

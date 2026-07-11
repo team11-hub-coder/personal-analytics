@@ -31,9 +31,7 @@ export default function ExpenseList() {
   const { data: categories } = useCategories();
   const { data: profile } = useProfile();
   const [isAdding, setIsAdding] = useState(false);
-  const [filterMonth, setFilterMonth] = useState<string>(
-    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`
-  );
+  const [filterMonth, setFilterMonth] = useState<string>("");
   const [filterCategory, setFilterCategory] = useState<number | undefined>();
   const [filterDateFrom, setFilterDateFrom] = useState<string>("");
   const [filterDateTo, setFilterDateTo] = useState<string>("");
@@ -111,9 +109,7 @@ export default function ExpenseList() {
   );
 
   const clearFilters = () => {
-    setFilterMonth(
-      `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`
-    );
+    setFilterMonth("");
     setFilterCategory(undefined);
     setFilterDateFrom("");
     setFilterDateTo("");

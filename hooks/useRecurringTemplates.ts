@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
+import { useUser } from "./useAuth";
 import type { RecurringTemplate } from "@/types";
 
 // Recurring template with joined category info
@@ -11,9 +12,10 @@ export interface RecurringTemplateWithCategory extends RecurringTemplate {
 
 export function useRecurringTemplates() {
   const supabase = createClient();
+  const { data: user, isLoading: authLoading } = useUser();
 
   return useQuery({
-    queryKey: ["recurring_templates"],
+    queryKey: ["recurring_templates", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("recurring_templates")
@@ -23,6 +25,7 @@ export function useRecurringTemplates() {
       if (error) throw error;
       return data as RecurringTemplateWithCategory[];
     },
+    enabled: !authLoading && !!user,
   });
 }
 

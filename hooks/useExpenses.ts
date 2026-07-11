@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
+import { useUser } from "./useAuth";
 import type { Transaction } from "@/types";
 
 // Transaction with joined category info
@@ -16,9 +17,10 @@ interface TransactionFilters {
 
 export function useTransactions(filters?: TransactionFilters) {
   const supabase = createClient();
+  const { data: user, isLoading: authLoading } = useUser();
 
   return useQuery({
-    queryKey: ["transactions", filters],
+    queryKey: ["transactions", filters, user?.id],
     queryFn: async () => {
       let query = supabase
         .from("transactions")
@@ -49,6 +51,7 @@ export function useTransactions(filters?: TransactionFilters) {
       if (error) throw error;
       return data as TransactionWithCategory[];
     },
+    enabled: !authLoading && !!user,
   });
 }
 
