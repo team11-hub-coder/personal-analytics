@@ -3,26 +3,55 @@ export interface Profile {
   display_name: string;
   daily_calorie_target: number;
   monthly_budget_goal: number;
+  currency: string;
+  timezone: string;
   created_at: string;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  icon: string;
+  user_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Transaction {
   id: number;
   user_id: string;
-  type: "income" | "expense";
   amount: number;
-  category: string;
-  description: string;
+  category_id: number | null;
+  description: string | null;
   date: string;
+  receipt_image_url: string | null;
+  entry_source: "manual_form" | "chatbot_text" | "chatbot_voice" | "chatbot_receipt" | "recurring";
+  ai_confidence_score: number | null;
+  template_id: number | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Budget {
   id: number;
   user_id: string;
-  category: string;
+  category_id: number;
   monthly_limit: number;
-  month: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecurringTemplate {
+  id: number;
+  user_id: string;
+  amount: number;
+  category_id: number | null;
+  description: string | null;
+  interval: "weekly" | "monthly";
+  next_run_date: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Workout {

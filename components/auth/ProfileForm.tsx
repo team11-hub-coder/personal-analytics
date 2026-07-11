@@ -7,13 +7,16 @@ import { z } from "zod";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useChatMessages } from "@/hooks/useChat";
 import { button, card, pageHeader } from "@/lib/theme";
-import { User, Save, Target, Loader2 } from "lucide-react";
+import { User, Save, Target, Loader2, Globe, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { currencies, timezones, detectTimezone, getCurrencyFromTimezone } from "@/lib/currency";
 
 const profileSchema = z.object({
   display_name: z.string().min(1, "Name is required"),
   daily_calorie_target: z.number().int().positive(),
   monthly_budget_goal: z.number().positive(),
+  currency: z.string().min(1, "Currency is required"),
+  timezone: z.string().min(1, "Timezone is required"),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -34,10 +37,20 @@ export default function ProfileForm() {
 
   useEffect(() => {
     if (profile) {
+      // Detect timezone from browser
+      const browserTimezone = detectTimezone();
+      const browserCurrency = getCurrencyFromTimezone(browserTimezone);
+
+      // Use detected values if profile still has default values
+      const isDefaultTimezone = !profile.timezone || profile.timezone === "Asia/Yangon";
+      const isDefaultCurrency = !profile.currency || profile.currency === "MMK";
+
       reset({
         display_name: profile.display_name,
         daily_calorie_target: profile.daily_calorie_target,
         monthly_budget_goal: profile.monthly_budget_goal,
+        currency: isDefaultCurrency ? browserCurrency : profile.currency,
+        timezone: isDefaultTimezone ? browserTimezone : profile.timezone,
       });
     }
   }, [profile, reset]);
@@ -182,7 +195,7 @@ export default function ProfileForm() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Monthly Budget Target ($)
+                    Monthly Budget Target
                   </label>
                   <input
                     type="number"
@@ -193,6 +206,56 @@ export default function ProfileForm() {
                   />
                   <p className="text-xs text-[var(--color-text-muted)] mt-1">
                     Your overall monthly spending goal
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[var(--color-border)] pt-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Globe
+                  size={16}
+                  className="text-[var(--color-text-secondary)]"
+                />
+                <h3 className="text-sm font-semibold text-[var(--color-text-secondary)]">
+                  Region Settings
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    Currency
+                  </label>
+                  <select
+                    {...register("currency")}
+                    className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
+                  >
+                    {currencies.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} - {c.name} ({c.symbol})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ Detected: {getCurrencyFromTimezone(detectTimezone())}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    Timezone
+                  </label>
+                  <select
+                    {...register("timezone")}
+                    className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
+                  >
+                    {timezones.map((tz) => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ Detected: {detectTimezone()}
                   </p>
                 </div>
               </div>
