@@ -9,6 +9,7 @@ import {
 import { useTransactions } from "@/hooks/useExpenses";
 import { card, button } from "@/lib/theme";
 import { formatCurrency } from "@/lib/currency";
+import { getCategoryIconInfo } from "@/lib/icons";
 import { useProfile } from "@/hooks/useProfile";
 import {
   Plus,
@@ -107,7 +108,7 @@ function BudgetItem({
     id: number;
     category_id: number;
     monthly_limit: number;
-    categories: { id: number; name: string } | null;
+    categories: { id: number; name: string; icon: string } | null;
   };
   currency: string;
 }) {
@@ -188,12 +189,20 @@ function BudgetItem({
     );
   }
 
+  const iconInfo = getCategoryIconInfo(budget.categories?.icon || "MoreHorizontal");
+  const Icon = iconInfo.icon;
+
   return (
     <div className="p-3 bg-[var(--color-surface-hover)] rounded-lg group">
       <div className="flex items-center justify-between mb-2">
-        <span className="font-medium text-[var(--color-text)]">
-          {budget.categories?.name}
-        </span>
+        <div className="flex items-center gap-2">
+          <div className={`w-6 h-6 rounded flex items-center justify-center ${iconInfo.color}`}>
+            <Icon size={12} />
+          </div>
+          <span className="font-medium text-[var(--color-text)]">
+            {budget.categories?.name}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <span
             className={`text-sm font-medium ${

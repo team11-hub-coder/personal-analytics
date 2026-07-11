@@ -1,133 +1,69 @@
 "use client";
 
-import { useMemo } from "react";
-import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import ExpenseAnalysis from "@/components/finance/expense-analysis";
 import CategoryList from "@/components/finance/category-list";
 import BudgetList from "@/components/finance/budget-list";
-import ExpenseList from "@/components/finance/expense-list";
 import RecurringTemplateList from "@/components/finance/recurring-template-list";
-import { useProfile } from "@/hooks/useProfile";
-import { useTransactions } from "@/hooks/useExpenses";
-import { formatCurrency } from "@/lib/currency";
+import ExpenseList from "@/components/finance/expense-list";
+import { button } from "@/lib/theme";
+import { Tag, Wallet, Repeat } from "lucide-react";
+
+type ActiveSection = "transactions" | "categories" | "budgets" | "recurring";
 
 export default function FinancePage() {
-  const { data: profile } = useProfile();
-  const { data: transactions } = useTransactions();
+  const [activeSection, setActiveSection] = useState<ActiveSection>("transactions");
 
-  const currency = profile?.currency || "MMK";
-
-  // Calculate current month totals
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-  const monthlyTransactions = useMemo(
-    () =>
-      transactions?.filter((t) => t.date.startsWith(currentMonth)) || [],
-    [transactions, currentMonth]
-  );
-
-  const totalExpenses = useMemo(
-    () => monthlyTransactions.reduce((sum, t) => sum + Number(t.amount), 0),
-    [monthlyTransactions]
-  );
-
-  const totalIncome = 0;
-  const net = totalIncome - totalExpenses;
-
-  const summaryCards = [
-    {
-      icon: <TrendingUp size={20} />,
-      label: "Income",
-      value: formatCurrency(totalIncome, currency),
-      color: "bg-emerald-50 text-emerald-600",
-    },
-    {
-      icon: <TrendingDown size={20} />,
-      label: "Expenses",
-      value: formatCurrency(totalExpenses, currency),
-      color: "bg-rose-50 text-rose-600",
-    },
-    {
-      icon: <DollarSign size={20} />,
-      label: "Net",
-      value: formatCurrency(net, currency),
-      color: "bg-[#f3ece3] text-[#8b6914]",
-    },
+  const sections = [
+    { id: "categories" as const, label: "Categories", icon: Tag },
+    { id: "budgets" as const, label: "Budgets", icon: Wallet },
+    { id: "recurring" as const, label: "Recurring", icon: Repeat },
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">
-            Finance Tracker
-          </h1>
-          <p className="text-[var(--color-text-secondary)] mt-1">
-            Track your expenses and budgets.
-          </p>
-        </div>
-        <Button className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white">
-          Add Transaction
-        </Button>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--color-text)]">
+          Finance Tracker
+        </h1>
+        <p className="text-[var(--color-text-secondary)] mt-1">
+          Track your expenses and budgets.
+        </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {summaryCards.map((card) => (
-          <div
-            key={card.label}
-            className="bg-[var(--color-surface)] rounded-xl p-5 shadow-sm border border-[var(--color-border)]"
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center ${card.color}`}
-              >
-                {card.icon}
-              </div>
-              <div>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  {card.label}
-                </p>
-                <p className="text-xl font-bold text-[var(--color-text)]">
-                  {card.value}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
+      <ExpenseAnalysis />
+
+      {/* Quick Access Links */}
+      <div className="flex items-center gap-2">
+        {sections.map((section) => {
+          const Icon = section.icon;
+          const isActive = activeSection === section.id;
+          return (
+            <button
+              key={section.id}
+              onClick={() =>
+                setActiveSection(isActive ? "transactions" : section.id)
+              }
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                isActive
+                  ? "bg-[var(--color-primary)] text-white"
+                  : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]"
+              }`}
+            >
+              <Icon size={14} />
+              {section.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Charts Placeholder */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[var(--color-surface)] rounded-xl p-6 shadow-sm border border-[var(--color-border)]">
-          <h3 className="font-semibold text-[var(--color-text)] mb-4">
-            Category Breakdown
-          </h3>
-          <p className="text-[var(--color-text-muted)] text-sm">
-            Chart coming soon
-          </p>
-        </div>
-        <div className="bg-[var(--color-surface)] rounded-xl p-6 shadow-sm border border-[var(--color-border)]">
-          <h3 className="font-semibold text-[var(--color-text)] mb-4">
-            Income vs Expense
-          </h3>
-          <p className="text-[var(--color-text-muted)] text-sm">
-            Chart coming soon
-          </p>
-        </div>
-      </div>
+      {/* Active Section Content */}
+      {activeSection === "categories" && <CategoryList />}
+      {activeSection === "budgets" && <BudgetList />}
+      {activeSection === "recurring" && <RecurringTemplateList />}
 
-      {/* Categories */}
-      <CategoryList />
-
-      {/* Budgets */}
-      <BudgetList />
-
-      {/* Recurring Templates */}
-      <RecurringTemplateList />
-
-      {/* Transactions */}
+      {/* Transactions - Always visible */}
       <ExpenseList />
     </div>
   );
