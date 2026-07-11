@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import CategoryList from "@/components/finance/category-list";
 import BudgetList from "@/components/finance/budget-list";
 import ExpenseList from "@/components/finance/expense-list";
+import RecurringTemplateList from "@/components/finance/recurring-template-list";
 import { useProfile } from "@/hooks/useProfile";
 import { useTransactions } from "@/hooks/useExpenses";
 import { formatCurrency } from "@/lib/currency";
@@ -122,6 +123,9 @@ export default function FinancePage() {
 
       {/* Budgets */}
       <BudgetList />
+
+      {/* Recurring Templates */}
+      <RecurringTemplateList />
 
       {/* Transactions */}
       <ExpenseList />
