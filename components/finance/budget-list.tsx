@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useBudgets,
   useUpdateBudget,
@@ -10,6 +12,7 @@ import { useTransactions } from "@/hooks/useExpenses";
 import { card, button } from "@/lib/theme";
 import { formatCurrency } from "@/lib/currency";
 import { getCategoryIconInfo } from "@/lib/icons";
+import { inlineBudgetSchema, type InlineBudgetFormData } from "@/lib/validations";
 import { useProfile } from "@/hooks/useProfile";
 import {
   Plus,
@@ -117,6 +120,17 @@ function BudgetItem({
   const { data: transactions } = useTransactions();
   const [isEditing, setIsEditing] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<InlineBudgetFormData>({
+    resolver: zodResolver(inlineBudgetSchema),
+    defaultValues: {
+      monthly_limit: budget.monthly_limit,
+    },
+  });
+
   // Calculate spent amount for this category in current month
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -134,9 +148,9 @@ function BudgetItem({
   const percentage = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
   const isOverBudget = spent > limit;
 
-  const handleUpdate = (newLimit: number) => {
+  const onSubmit = (data: InlineBudgetFormData) => {
     updateBudget.mutate(
-      { id: budget.id, monthly_limit: newLimit },
+      { id: budget.id, monthly_limit: data.monthly_limit },
       { onSuccess: () => setIsEditing(false) }
     );
   };
@@ -153,22 +167,21 @@ function BudgetItem({
         <p className="text-sm font-medium text-[var(--color-text)] mb-2">
           {budget.categories?.name}
         </p>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            step="1"
-            min="0"
-            defaultValue={budget.monthly_limit}
-            id={`budget-limit-${budget.id}`}
-            className="flex-1 border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm"
-          />
+        <form onSubmit={handleSubmit(onSubmit)} className="flex items-center gap-2">
+          <div className="flex-1">
+            <input
+              type="number"
+              step="1"
+              min="0"
+              {...register("monthly_limit", { valueAsNumber: true })}
+              className="w-full border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm"
+            />
+            {errors.monthly_limit && (
+              <p className="text-xs text-red-500">{errors.monthly_limit.message}</p>
+            )}
+          </div>
           <button
-            onClick={() => {
-              const input = document.getElementById(
-                `budget-limit-${budget.id}`
-              ) as HTMLInputElement;
-              handleUpdate(parseFloat(input.value));
-            }}
+            type="submit"
             disabled={updateBudget.isPending}
             className={`${button.primary} px-3 py-1.5 rounded-lg text-sm`}
           >
@@ -179,12 +192,13 @@ function BudgetItem({
             )}
           </button>
           <button
+            type="button"
             onClick={() => setIsEditing(false)}
             className={`${button.ghost} px-3 py-1.5 rounded-lg text-sm`}
           >
             <X size={14} />
           </button>
-        </div>
+        </form>
       </div>
     );
   }

@@ -110,10 +110,15 @@ export function useUpdateTransaction() {
       description?: string;
       date?: string;
     }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const { data, error } = await supabase
         .from("transactions")
         .update(updates)
         .eq("id", id)
+        .eq("user_id", user!.id)
         .select("*, categories(id, name, icon)")
         .single();
 
@@ -132,10 +137,15 @@ export function useDeleteTransaction() {
 
   return useMutation({
     mutationFn: async (id: number) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const { error } = await supabase
         .from("transactions")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user!.id);
 
       if (error) throw error;
     },

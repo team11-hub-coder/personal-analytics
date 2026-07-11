@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useRecurringTemplates,
   useUpdateRecurringTemplate,
@@ -11,6 +13,10 @@ import { useProfile } from "@/hooks/useProfile";
 import { card, button } from "@/lib/theme";
 import { formatCurrency } from "@/lib/currency";
 import { getCategoryIconInfo } from "@/lib/icons";
+import {
+  inlineRecurringTemplateSchema,
+  type InlineRecurringTemplateFormData,
+} from "@/lib/validations";
 import {
   Plus,
   Pencil,
@@ -191,6 +197,20 @@ function TemplateItem({
   const deleteTemplate = useDeleteRecurringTemplate();
   const [isEditing, setIsEditing] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<InlineRecurringTemplateFormData>({
+    resolver: zodResolver(inlineRecurringTemplateSchema),
+    defaultValues: {
+      amount: template.amount,
+      description: template.description || "",
+      interval: template.interval as "weekly" | "monthly",
+      next_run_date: template.next_run_date,
+    },
+  });
+
   const handleToggleActive = () => {
     updateTemplate.mutate({
       id: template.id,
@@ -204,19 +224,14 @@ function TemplateItem({
     }
   };
 
-  const handleUpdate = () => {
-    const amountInput = document.getElementById(`edit-amount-${template.id}`) as HTMLInputElement;
-    const descInput = document.getElementById(`edit-desc-${template.id}`) as HTMLInputElement;
-    const intervalSelect = document.getElementById(`edit-interval-${template.id}`) as HTMLSelectElement;
-    const dateInput = document.getElementById(`edit-date-${template.id}`) as HTMLInputElement;
-
+  const onSubmit = (data: InlineRecurringTemplateFormData) => {
     updateTemplate.mutate(
       {
         id: template.id,
-        amount: parseFloat(amountInput.value),
-        description: descInput.value || null,
-        interval: intervalSelect.value as "weekly" | "monthly",
-        next_run_date: dateInput.value,
+        amount: data.amount,
+        description: data.description || null,
+        interval: data.interval,
+        next_run_date: data.next_run_date,
       },
       { onSuccess: () => setIsEditing(false) }
     );
@@ -236,67 +251,78 @@ function TemplateItem({
 
   if (isEditing) {
     return (
-      <div className="p-3 bg-[var(--color-surface-hover)] rounded-lg space-y-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs text-[var(--color-text-muted)]">Amount</label>
-            <input
-              id={`edit-amount-${template.id}`}
-              type="number"
-              step="1"
-              defaultValue={template.amount}
-              className="w-full border border-[var(--color-border)] rounded px-2 py-1 text-sm"
-            />
+      <div className="p-3 bg-[var(--color-surface-hover)] rounded-lg">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-[var(--color-text-muted)]">Amount</label>
+              <input
+                type="number"
+                step="1"
+                {...register("amount", { valueAsNumber: true })}
+                className="w-full border border-[var(--color-border)] rounded px-2 py-1 text-sm"
+              />
+              {errors.amount && (
+                <p className="text-xs text-red-500">{errors.amount.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-[var(--color-text-muted)]">Description</label>
+              <input
+                type="text"
+                {...register("description")}
+                className="w-full border border-[var(--color-border)] rounded px-2 py-1 text-sm"
+              />
+              {errors.description && (
+                <p className="text-xs text-red-500">{errors.description.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-[var(--color-text-muted)]">Interval</label>
+              <select
+                {...register("interval")}
+                className="w-full border border-[var(--color-border)] rounded px-2 py-1 text-sm"
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              {errors.interval && (
+                <p className="text-xs text-red-500">{errors.interval.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="text-xs text-[var(--color-text-muted)]">Next Date</label>
+              <input
+                type="date"
+                {...register("next_run_date")}
+                className="w-full border border-[var(--color-border)] rounded px-2 py-1 text-sm"
+              />
+              {errors.next_run_date && (
+                <p className="text-xs text-red-500">{errors.next_run_date.message}</p>
+              )}
+            </div>
           </div>
-          <div>
-            <label className="text-xs text-[var(--color-text-muted)]">Description</label>
-            <input
-              id={`edit-desc-${template.id}`}
-              type="text"
-              defaultValue={template.description || ""}
-              className="w-full border border-[var(--color-border)] rounded px-2 py-1 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-[var(--color-text-muted)]">Interval</label>
-            <select
-              id={`edit-interval-${template.id}`}
-              defaultValue={template.interval}
-              className="w-full border border-[var(--color-border)] rounded px-2 py-1 text-sm"
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={updateTemplate.isPending}
+              className={`${button.primary} px-3 py-1 rounded-lg text-sm`}
             >
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
+              {updateTemplate.isPending ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Check size={12} />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className={`${button.ghost} px-3 py-1 rounded-lg text-sm`}
+            >
+              <X size={12} />
+            </button>
           </div>
-          <div>
-            <label className="text-xs text-[var(--color-text-muted)]">Next Date</label>
-            <input
-              id={`edit-date-${template.id}`}
-              type="date"
-              defaultValue={template.next_run_date}
-              className="w-full border border-[var(--color-border)] rounded px-2 py-1 text-sm"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleUpdate}
-            disabled={updateTemplate.isPending}
-            className={`${button.primary} px-3 py-1 rounded-lg text-sm`}
-          >
-            {updateTemplate.isPending ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Check size={12} />
-            )}
-          </button>
-          <button
-            onClick={() => setIsEditing(false)}
-            className={`${button.ghost} px-3 py-1 rounded-lg text-sm`}
-          >
-            <X size={12} />
-          </button>
-        </div>
+        </form>
       </div>
     );
   }

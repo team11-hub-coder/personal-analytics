@@ -84,10 +84,15 @@ export function useUpdateRecurringTemplate() {
       next_run_date?: string;
       is_active?: boolean;
     }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const { data, error } = await supabase
         .from("recurring_templates")
         .update(updates)
         .eq("id", id)
+        .eq("user_id", user!.id)
         .select("*, categories(id, name, icon)")
         .single();
 
@@ -106,10 +111,15 @@ export function useDeleteRecurringTemplate() {
 
   return useMutation({
     mutationFn: async (id: number) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const { error } = await supabase
         .from("recurring_templates")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user!.id);
 
       if (error) throw error;
     },

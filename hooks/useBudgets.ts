@@ -76,10 +76,15 @@ export function useUpdateBudget() {
       id: number;
       monthly_limit: number;
     }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const { data, error } = await supabase
         .from("budgets")
         .update({ monthly_limit })
         .eq("id", id)
+        .eq("user_id", user!.id)
         .select("*, categories(id, name, icon)")
         .single();
 
@@ -98,7 +103,15 @@ export function useDeleteBudget() {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase.from("budgets").delete().eq("id", id);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const { error } = await supabase
+        .from("budgets")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user!.id);
 
       if (error) throw error;
     },

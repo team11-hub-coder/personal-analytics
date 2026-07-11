@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useTransactions,
   useUpdateTransaction,
@@ -10,6 +12,11 @@ import { useCategories } from "@/hooks/useCategories";
 import { useProfile } from "@/hooks/useProfile";
 import { card, button } from "@/lib/theme";
 import { formatCurrency } from "@/lib/currency";
+import { getCategoryIconInfo } from "@/lib/icons";
+import {
+  inlineTransactionSchema,
+  type InlineTransactionFormData,
+} from "@/lib/validations";
 import {
   Plus,
   Pencil,
@@ -22,7 +29,6 @@ import {
   AlertCircle,
   Calendar,
 } from "lucide-react";
-import { getCategoryIconInfo } from "@/lib/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import ExpenseForm from "./expense-form";
 
@@ -472,10 +478,33 @@ function ExpenseItem({
   const deleteTransaction = useDeleteTransaction();
   const [isEditing, setIsEditing] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<InlineTransactionFormData>({
+    resolver: zodResolver(inlineTransactionSchema),
+    defaultValues: {
+      amount: transaction.amount,
+      description: transaction.description || "",
+    },
+  });
+
   const handleDelete = () => {
     if (confirm("Delete this transaction?")) {
       deleteTransaction.mutate(transaction.id);
     }
+  };
+
+  const onSubmit = (data: InlineTransactionFormData) => {
+    updateTransaction.mutate(
+      {
+        id: transaction.id,
+        amount: data.amount,
+        description: data.description,
+      },
+      { onSuccess: () => setIsEditing(false) }
+    );
   };
 
   // Get icon from category's icon field in database
@@ -521,55 +550,52 @@ function ExpenseItem({
   if (isEditing) {
     return (
       <div className="p-3 bg-[var(--color-surface-hover)] rounded-lg">
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <input
-            type="number"
-            step="1"
-            defaultValue={transaction.amount}
-            id={`edit-amount-${transaction.id}`}
-            className="border border-[var(--color-border)] rounded px-2 py-1 text-sm"
-          />
-          <input
-            type="text"
-            defaultValue={transaction.description || ""}
-            id={`edit-desc-${transaction.id}`}
-            className="border border-[var(--color-border)] rounded px-2 py-1 text-sm"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              const amount = document.getElementById(
-                `edit-amount-${transaction.id}`
-              ) as HTMLInputElement;
-              const desc = document.getElementById(
-                `edit-desc-${transaction.id}`
-              ) as HTMLInputElement;
-              updateTransaction.mutate(
-                {
-                  id: transaction.id,
-                  amount: parseFloat(amount.value),
-                  description: desc.value,
-                },
-                { onSuccess: () => setIsEditing(false) }
-              );
-            }}
-            disabled={updateTransaction.isPending}
-            className={`${button.primary} px-3 py-1 rounded-lg text-sm`}
-          >
-            {updateTransaction.isPending ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Check size={12} />
-            )}
-          </button>
-          <button
-            onClick={() => setIsEditing(false)}
-            className={`${button.ghost} px-3 py-1 rounded-lg text-sm`}
-          >
-            <X size={12} />
-          </button>
-        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <input
+                type="number"
+                step="1"
+                {...register("amount", { valueAsNumber: true })}
+                className="border border-[var(--color-border)] rounded px-2 py-1 text-sm"
+              />
+              {errors.amount && (
+                <p className="text-xs text-red-500">{errors.amount.message}</p>
+              )}
+            </div>
+            <div>
+              <input
+                type="text"
+                {...register("description")}
+                placeholder="Description"
+                className="border border-[var(--color-border)] rounded px-2 py-1 text-sm"
+              />
+              {errors.description && (
+                <p className="text-xs text-red-500">{errors.description.message}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={updateTransaction.isPending}
+              className={`${button.primary} px-3 py-1 rounded-lg text-sm`}
+            >
+              {updateTransaction.isPending ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Check size={12} />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className={`${button.ghost} px-3 py-1 rounded-lg text-sm`}
+            >
+              <X size={12} />
+            </button>
+          </div>
+        </form>
       </div>
     );
   }

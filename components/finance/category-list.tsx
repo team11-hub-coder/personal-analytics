@@ -232,6 +232,7 @@ function CategoryItem({
     setValue,
     formState: { errors },
   } = useForm<CategoryFormData>({
+    resolver: zodResolver(categoryFormSchema),
     defaultValues: { name: category.name, icon: category.icon },
   });
 
