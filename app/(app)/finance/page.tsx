@@ -1,31 +1,59 @@
 "use client";
 
+import { useMemo } from "react";
 import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CategoryList from "@/components/finance/category-list";
-
-const summaryCards = [
-  {
-    icon: <TrendingUp size={20} />,
-    label: "Income",
-    value: "$0.00",
-    color: "bg-emerald-50 text-emerald-600",
-  },
-  {
-    icon: <TrendingDown size={20} />,
-    label: "Expenses",
-    value: "$0.00",
-    color: "bg-rose-50 text-rose-600",
-  },
-  {
-    icon: <DollarSign size={20} />,
-    label: "Net",
-    value: "$0.00",
-    color: "bg-[#f3ece3] text-[#8b6914]",
-  },
-];
+import BudgetList from "@/components/finance/budget-list";
+import { useProfile } from "@/hooks/useProfile";
+import { useTransactions } from "@/hooks/useExpenses";
+import { formatCurrency } from "@/lib/currency";
 
 export default function FinancePage() {
+  const { data: profile } = useProfile();
+  const { data: transactions } = useTransactions();
+
+  const currency = profile?.currency || "MMK";
+
+  // Calculate current month totals
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const monthlyTransactions = useMemo(
+    () =>
+      transactions?.filter((t) => t.date.startsWith(currentMonth)) || [],
+    [transactions, currentMonth]
+  );
+
+  const totalExpenses = useMemo(
+    () => monthlyTransactions.reduce((sum, t) => sum + Number(t.amount), 0),
+    [monthlyTransactions]
+  );
+
+  const totalIncome = 0;
+  const net = totalIncome - totalExpenses;
+
+  const summaryCards = [
+    {
+      icon: <TrendingUp size={20} />,
+      label: "Income",
+      value: formatCurrency(totalIncome, currency),
+      color: "bg-emerald-50 text-emerald-600",
+    },
+    {
+      icon: <TrendingDown size={20} />,
+      label: "Expenses",
+      value: formatCurrency(totalExpenses, currency),
+      color: "bg-rose-50 text-rose-600",
+    },
+    {
+      icon: <DollarSign size={20} />,
+      label: "Net",
+      value: formatCurrency(net, currency),
+      color: "bg-[#f3ece3] text-[#8b6914]",
+    },
+  ];
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -34,7 +62,7 @@ export default function FinancePage() {
             Finance Tracker
           </h1>
           <p className="text-[var(--color-text-secondary)] mt-1">
-            Track your income, expenses, and budgets.
+            Track your expenses and budgets.
           </p>
         </div>
         <Button className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white">
@@ -91,15 +119,8 @@ export default function FinancePage() {
       {/* Categories */}
       <CategoryList />
 
-      {/* Budget Progress Placeholder */}
-      <div className="bg-[var(--color-surface)] rounded-xl p-6 shadow-sm border border-[var(--color-border)]">
-        <h3 className="font-semibold text-[var(--color-text)] mb-4">
-          Budget Progress
-        </h3>
-        <p className="text-[var(--color-text-muted)] text-sm">
-          Budget bars coming soon
-        </p>
-      </div>
+      {/* Budgets */}
+      <BudgetList />
 
       {/* Transaction List Placeholder */}
       <div className="bg-[var(--color-surface)] rounded-xl p-6 shadow-sm border border-[var(--color-border)]">
