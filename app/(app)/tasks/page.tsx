@@ -3,7 +3,8 @@
 import { useState } from "react";
 import TaskAnalytics from "@/components/tasks/task-analytics";
 import TaskList from "@/components/tasks/task-list";
-import TaskForm from "@/components/tasks/task-form";
+import TaskFormModal from "@/components/tasks/task-form-modal";
+import CategoryFormModal from "@/components/tasks/category-form-modal";
 import CategoryList from "@/components/tasks/category-list";
 import ProductivityChart from "@/components/charts/ProductivityChart";
 import CompletionRateChart from "@/components/charts/CompletionRateChart";
@@ -13,7 +14,8 @@ import { Plus, Tag } from "lucide-react";
 type ActiveSection = "tasks" | "categories";
 
 export default function TasksPage() {
-  const [isAdding, setIsAdding] = useState(false);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<ActiveSection>("tasks");
 
   return (
@@ -28,22 +30,23 @@ export default function TasksPage() {
             Manage your tasks and stay productive.
           </p>
         </div>
-        <button
-          onClick={() => setIsAdding(!isAdding)}
-          className={`flex items-center gap-2 ${button.primary} px-4 py-2 rounded-lg text-sm`}
-        >
-          <Plus size={16} />
-          Add Task
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsCategoryModalOpen(true)}
+            className={`flex items-center gap-2 ${button.secondary} px-4 py-2 rounded-lg text-sm`}
+          >
+            <Tag size={16} />
+            Add Task Category
+          </button>
+          <button
+            onClick={() => setIsTaskModalOpen(true)}
+            className={`flex items-center gap-2 ${button.primary} px-4 py-2 rounded-lg text-sm`}
+          >
+            <Plus size={16} />
+            Add Task
+          </button>
+        </div>
       </div>
-
-      {/* Add Task Form */}
-      {isAdding && (
-        <TaskForm
-          onSuccess={() => setIsAdding(false)}
-          onCancel={() => setIsAdding(false)}
-        />
-      )}
 
       {/* Summary Cards: Total, Pending, Completed, Overdue */}
       <TaskAnalytics />
@@ -96,6 +99,16 @@ export default function TasksPage() {
 
       {/* Task List with Filters - Only show when on tasks section */}
       {activeSection === "tasks" && <TaskList />}
+
+      {/* Modals */}
+      <TaskFormModal
+        isOpen={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(false)}
+      />
+      <CategoryFormModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+      />
     </div>
   );
 }
