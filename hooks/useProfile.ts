@@ -16,11 +16,32 @@ export function useProfile() {
       } = await supabase.auth.getUser();
       if (userErr) throw userErr;
 
+      // Try to get existing profile
       const { data: profile, error: profileErr } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user!.id)
         .single();
+
+      // If profile doesn't exist, create it
+      if (profileErr && profileErr.code === "PGRST116") {
+        const { data: newProfile, error: createErr } = await supabase
+          .from("profiles")
+          .insert({
+            id: user!.id,
+            display_name: user!.email?.split("@")[0] || "User",
+            currency: "MMK",
+            timezone: "Asia/Yangon",
+          })
+          .select()
+          .single();
+
+        if (createErr) throw createErr;
+        return {
+          ...newProfile,
+          email: user!.email,
+        } as Profile & { email: string };
+      }
 
       if (profileErr) throw profileErr;
 
@@ -41,6 +62,8 @@ export function useUpdateProfile() {
       display_name?: string;
       daily_calorie_target?: number;
       monthly_budget_goal?: number;
+      currency?: string;
+      timezone?: string;
     }) => {
       const {
         data: { user },
