@@ -98,6 +98,8 @@ export interface GeneratedWorkout {
   title: string;
   duration: number;
   exercises: WorkoutExercise[];
+}
+
 export interface TaskCategory {
   id: number;
   user_id: string;
