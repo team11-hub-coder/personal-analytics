@@ -1,12 +1,8 @@
 "use client";
 
 interface BudgetItem {
-  id: number;
-  user_id: string;
-  category_id: number;
+  category: string;
   monthly_limit: number;
-  created_at: string;
-  updated_at: string;
   spent: number;
   percent: number;
 }
@@ -27,10 +23,10 @@ export default function BudgetProgressChart({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {data.map((b) => (
-        <div key={b.id} className="space-y-2">
+        <div key={b.category} className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="capitalize font-medium text-[var(--color-text-secondary)]">
-              Category {b.category_id}
+              {b.category}
             </span>
             <span className="text-[var(--color-text-secondary)]">
               ${b.spent.toFixed(0)} / ${b.monthly_limit}
