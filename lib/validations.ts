@@ -118,6 +118,18 @@ export const taskSchema = z.object({
   description: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]),
   due_date: z.string().optional().nullable(),
+  category_id: z.number().optional().nullable(),
+});
+
+export const taskCategorySchema = z.object({
+  name: z.string().min(1, "Category name is required").max(50, "Category name too long"),
+  color: z.string().optional().nullable(),
+});
+
+// Inline edit schema for existing tasks (stricter)
+export const inlineTaskSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
 });
 
 export const reminderSchema = z.object({
@@ -138,4 +150,6 @@ export type InlineBudgetFormData = z.infer<typeof inlineBudgetSchema>;
 export type InlineRecurringTemplateFormData = z.infer<typeof inlineRecurringTemplateSchema>;
 export type WorkoutFormData = z.infer<typeof workoutSchema>;
 export type TaskFormData = z.infer<typeof taskSchema>;
+export type TaskCategoryFormData = z.infer<typeof taskCategorySchema>;
+export type InlineTaskFormData = z.infer<typeof inlineTaskSchema>;
 export type ReminderFormData = z.infer<typeof reminderSchema>;

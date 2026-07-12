@@ -71,16 +71,64 @@ export interface Workout {
   created_at: string;
 }
 
+export interface WorkoutTemplate {
+  id: string;
+  user_id: string;
+  title: string;
+  duration_minutes: number;
+  equipment: string[];
+  target_muscles: string[];
+  difficulty: "beginner" | "intermediate" | "advanced";
+  exercises: WorkoutExercise[];
+  created_at: string;
+}
+
+export interface WorkoutExercise {
+  name: string;
+  type: "strength" | "cardio" | "flexibility";
+  sets: number;
+  reps: number | null;
+  weight: number | null;
+  duration_min: number | null;
+  rest_seconds: number;
+  muscle_group: string;
+}
+
+export interface GeneratedWorkout {
+  title: string;
+  duration: number;
+  exercises: WorkoutExercise[];
+export interface TaskCategory {
+  id: number;
+  user_id: string;
+  name: string;
+  color: string | null;
+  created_at: string;
+}
+
 export interface Task {
   id: number;
   user_id: string;
+  category_id: number | null;
   title: string;
   description: string;
   priority: "low" | "medium" | "high";
+  priority_rank: number;
   status: "pending" | "completed";
   due_date: string | null;
   completed_at: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+// Task with joined category info
+export interface TaskWithCategory extends Task {
+  task_categories: { id: number; name: string; color: string } | null;
+}
+
+// Task from the view with effective_status
+export interface TaskView extends Task {
+  effective_status: "pending" | "completed" | "overdue";
 }
 
 export interface Reminder {
@@ -100,3 +148,19 @@ export interface ChatMessage {
   content: string;
   created_at: string;
 }
+
+export interface FocusSession {
+  id: string;
+  user_id: string;
+  title: string;
+  mode: "pomodoro" | "stopwatch";
+  duration_minutes: number;
+  break_minutes: number;
+  completed: boolean;
+  completed_count: number;
+  started_at: string;
+  ended_at: string | null;
+  created_at: string;
+}
+
+export type FocusPhase = "idle" | "focus" | "break" | "longBreak";
