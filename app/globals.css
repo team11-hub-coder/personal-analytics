@@ -78,6 +78,13 @@
   --chart-grid: oklch(0.922 0 0);
   --chart-tooltip-bg: oklch(1 0 0);
   --chart-tooltip-text: oklch(0.145 0 0);
+  --chart-bar-1: #8b6914;
+  --chart-bar-2: #10b981;
+  --chart-bar-3: #f59e0b;
+  --chart-bar-4: #ef4444;
+  --chart-bar-5: #c9a96e;
+  --chart-bar-6: #06b6d4;
+  --chart-bar-7: #d97706;
   /* Type scale */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -125,6 +132,13 @@
   --chart-grid: oklch(1 0 0 / 10%);
   --chart-tooltip-bg: oklch(0.205 0 0);
   --chart-tooltip-text: oklch(0.985 0 0);
+  --chart-bar-1: #c9a96e;
+  --chart-bar-2: #34d399;
+  --chart-bar-3: #fbbf24;
+  --chart-bar-4: #f87171;
+  --chart-bar-5: #e2c997;
+  --chart-bar-6: #22d3ee;
+  --chart-bar-7: #f59e0b;
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);

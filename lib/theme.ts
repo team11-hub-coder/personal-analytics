@@ -136,11 +136,11 @@ export const quickActionColors = {
 
 // ─── Chart Colors ──────────────────────────────────────────────
 export const chartColors = [
-  "#8b6914", // gold
-  "#10b981", // emerald
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#c9a96e", // light gold
-  "#06b6d4", // cyan
-  "#d97706", // orange
+  "var(--chart-bar-1)",
+  "var(--chart-bar-2)",
+  "var(--chart-bar-3)",
+  "var(--chart-bar-4)",
+  "var(--chart-bar-5)",
+  "var(--chart-bar-6)",
+  "var(--chart-bar-7)",
 ] as const;

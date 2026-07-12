@@ -14,7 +14,7 @@ export default function WeeklyWorkoutChart({
       data={data}
       xKey="week"
       yKey="count"
-      color="#10b981"
+      color="var(--chart-bar-2)"
       tooltipFormatter={(v) => [String(v), "Workouts"]}
     />
   );
