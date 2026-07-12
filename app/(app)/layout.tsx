@@ -4,17 +4,23 @@ import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import ChatPanel, { ChatFloatingButton } from "@/components/chat/ChatPanel";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  usePushNotifications();
   const [chatOpen, setChatOpen] = useState(false);
   const [chatFullscreen, setChatFullscreen] = useState(false);
+  const [usageStats, setUsageStats] = useState<{
+    daily: { used: number; limit: number };
+    hourly: { used: number; limit: number };
+  } | null>(null);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: "var(--color-bg)" }}>
       <Sidebar />
 
       {/* Main content — only this column scrolls */}
@@ -31,6 +37,8 @@ export default function AppLayout({
             onClose={() => setChatOpen(false)}
             desktop
             onToggleFullscreen={() => setChatFullscreen(true)}
+            usage={usageStats}
+            onUsageUpdate={setUsageStats}
           />
         </div>
       )}
@@ -41,6 +49,8 @@ export default function AppLayout({
           open={chatOpen}
           onClose={() => setChatOpen(false)}
           onToggleFullscreen={() => setChatFullscreen(true)}
+          usage={usageStats}
+          onUsageUpdate={setUsageStats}
         />
       </div>
 
@@ -58,6 +68,8 @@ export default function AppLayout({
                 onClose={() => setChatFullscreen(false)}
                 fullscreen
                 onToggleFullscreen={() => setChatFullscreen(false)}
+                usage={usageStats}
+                onUsageUpdate={setUsageStats}
               />
             </div>
           </div>
