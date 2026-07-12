@@ -50,7 +50,7 @@ export const statCard = {
     "bg-(--color-surface) rounded-xl p-5 shadow-sm border border-(--color-border)",
   iconWrapper: "w-10 h-10 rounded-lg flex items-center justify-center",
   label: "text-sm text-(--color-text-secondary)",
-  value: "text-xl font-bold text-(--color-text)",
+  value: "text-xl font-bold tracking-tight text-(--color-text)",
 } as const;
 
 // Stat card icon colors
@@ -66,7 +66,7 @@ export const statColors = {
 // Page headers
 export const pageHeader = {
   container: "flex items-center justify-between",
-  title: "text-2xl font-bold text-(--color-text)",
+  title: "text-2xl font-bold tracking-tight text-(--color-text)",
   subtitle: "text-(--color-text-secondary) mt-1",
 } as const;
 
@@ -101,7 +101,7 @@ export const sidebar = {
 
 // Section headers
 export const sectionHeader = {
-  title: "font-semibold text-(--color-text)",
+  title: "text-lg font-semibold text-(--color-text)",
   subtitle: "text-(--color-text-muted) text-sm",
 } as const;
 
@@ -115,7 +115,7 @@ export const list = {
   item:
     "flex items-center gap-3 text-sm",
   iconCircle: "w-8 h-8 rounded-full flex items-center justify-center",
-  title: "font-medium text-(--color-text) truncate",
+  title: "text-base font-medium text-(--color-text) truncate",
   subtitle: "text-(--color-text-secondary) text-xs",
   badge: "text-xs px-2 py-0.5 rounded-full",
 } as const;
