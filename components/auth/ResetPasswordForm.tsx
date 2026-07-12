@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,7 +33,7 @@ export default function ResetPasswordForm() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validToken, setValidToken] = useState<boolean | null>(() => {
+  const [validToken] = useState<boolean | null>(() => {
     if (typeof window === "undefined") return null;
     return !!window.location.hash;
   });
