@@ -176,3 +176,26 @@ export interface NotificationPreference {
   created_at: string;
   updated_at: string;
 }
+
+export interface EmailQueue {
+  id: number;
+  user_id: string;
+  email_type: "finance_alert" | "workout_reminder" | "task_reminder" | "reminder_alert";
+  subject: string;
+  body: string;
+  status: "pending" | "processing" | "sent" | "failed";
+  scheduled_for: string;
+  sent_at: string | null;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface EmailTemplate {
+  id: number;
+  template_name: string;
+  subject: string;
+  html_body: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
