@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateTaskCategory } from "@/hooks/useTasks";
@@ -26,12 +26,13 @@ interface CategoryFormModalProps {
 
 export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModalProps) {
   const createCategory = useCreateTaskCategory();
-  const [selectedColor, setSelectedColor] = useState(colorOptions[0].value);
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<TaskCategoryFormData>({
     resolver: zodResolver(taskCategorySchema),
@@ -40,11 +41,12 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
     },
   });
 
+  const selectedColor = watch("color") ?? colorOptions[0].value;
+
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       reset({ color: colorOptions[0].value });
-      setSelectedColor(colorOptions[0].value);
     }
   }, [isOpen, reset]);
 
@@ -69,7 +71,6 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
       {
         onSuccess: () => {
           reset();
-          setSelectedColor(colorOptions[0].value);
           onClose();
         },
       }
@@ -129,7 +130,7 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => setSelectedColor(opt.value)}
+                  onClick={() => setValue("color", opt.value)}
                   className={`w-10 h-10 rounded-full border-2 transition-transform hover:scale-110 ${
                     selectedColor === opt.value
                       ? "border-[var(--color-text)] scale-110"
