@@ -1,6 +1,6 @@
 "use client";
 
-import { DollarSign, Dumbbell, CheckSquare, Bell } from "lucide-react";
+import { DollarSign, Dumbbell, CheckSquare, Bell, Timer } from "lucide-react";
 import Link from "next/link";
 import {
   card,
@@ -10,6 +10,7 @@ import {
   sectionHeader,
   quickAction,
 } from "@/lib/theme";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartCard,
   SpendingCategoryChart,
@@ -18,43 +19,19 @@ import {
   BudgetProgressChart,
 } from "@/components/charts";
 import {
-  getTodaySpent,
-  getTodayWorkouts,
-  getPendingTasks,
-  getUpcomingReminders,
-  getCategoryData,
-  getWeeklySpending,
-  getWeeklyWorkouts,
-  getBudgetProgress,
-  mockWorkouts,
-} from "@/lib/mock/data";
-
-const statCards = [
-  {
-    icon: <DollarSign size={20} />,
-    label: "Spent Today",
-    value: `$${getTodaySpent().toFixed(2)}`,
-    color: statColors.emerald,
-  },
-  {
-    icon: <Dumbbell size={20} />,
-    label: "Workouts Today",
-    value: getTodayWorkouts().toString(),
-    color: statColors.gold,
-  },
-  {
-    icon: <CheckSquare size={20} />,
-    label: "Pending Tasks",
-    value: getPendingTasks().toString(),
-    color: statColors.amber,
-  },
-  {
-    icon: <Bell size={20} />,
-    label: "Upcoming Reminders",
-    value: getUpcomingReminders().length.toString(),
-    color: statColors.rose,
-  },
-];
+  useTodayFocusMinutes,
+} from "@/hooks/useFocus";
+import {
+  useDashboardSpentToday,
+  useDashboardCategoryData,
+  useDashboardWeeklySpending,
+  useDashboardBudgetProgress,
+  useDashboardPendingTasks,
+  useDashboardUpcomingReminders,
+  useDashboardTodayWorkouts,
+  useDashboardWeeklyWorkouts,
+  useDashboardRecentWorkouts,
+} from "@/hooks/useDashboard";
 
 const quickActions = [
   { href: "/finance", label: "Add Transaction", color: "bg-emerald-500" },
@@ -63,9 +40,70 @@ const quickActions = [
   { href: "/reminders", label: "Set Reminder", color: "bg-rose-500" },
 ];
 
+function formatFocusTime(mins: number) {
+  if (mins === 0) return "0m";
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
 export default function DashboardPage() {
-  const upcomingReminders = getUpcomingReminders();
-  const recentWorkouts = mockWorkouts.slice(0, 4);
+  // ─── Finance ───────────────────────────────────────────
+  const { data: spentToday = 0, isLoading: spentLoading } = useDashboardSpentToday();
+  const { data: categoryData = [], isLoading: catLoading } = useDashboardCategoryData();
+  const { data: weeklySpending = [], isLoading: weeklySpendingLoading } = useDashboardWeeklySpending();
+  const { data: budgetProgress = [], isLoading: budgetLoading } = useDashboardBudgetProgress();
+
+  // ─── Tasks ─────────────────────────────────────────────
+  const { data: pendingTasks = 0, isLoading: tasksLoading } = useDashboardPendingTasks();
+
+  // ─── Reminders ────────────────────────────────────────
+  const { data: upcomingReminders = [], isLoading: remindersLoading } = useDashboardUpcomingReminders();
+
+  // ─── Workouts ─────────────────────────────────────────
+  const { data: todayWorkouts = 0, isLoading: workoutsLoading } = useDashboardTodayWorkouts();
+  const { data: weeklyWorkouts = [], isLoading: weeklyWorkoutsLoading } = useDashboardWeeklyWorkouts();
+  const { data: recentWorkouts = [], isLoading: recentWorkoutsLoading } = useDashboardRecentWorkouts(4);
+
+  // ─── Focus ─────────────────────────────────────────────
+  const { data: todayFocusMinutes = 0 } = useTodayFocusMinutes();
+
+  // ─── Stat Cards ───────────────────────────────────────
+  const statCards = [
+    {
+      icon: <DollarSign size={20} />,
+      label: "Spent Today",
+      value: spentLoading ? null : `$${spentToday.toFixed(2)}`,
+      color: statColors.emerald,
+    },
+    {
+      icon: <Dumbbell size={20} />,
+      label: "Workouts Today",
+      value: workoutsLoading ? null : todayWorkouts.toString(),
+      color: statColors.gold,
+    },
+    {
+      icon: <CheckSquare size={20} />,
+      label: "Pending Tasks",
+      value: tasksLoading ? null : pendingTasks.toString(),
+      color: statColors.amber,
+    },
+    {
+      icon: <Bell size={20} />,
+      label: "Reminders",
+      value: remindersLoading ? null : upcomingReminders.length.toString(),
+      color: statColors.rose,
+    },
+    {
+      icon: <Timer size={20} />,
+      label: "Focus Today",
+      value: formatFocusTime(todayFocusMinutes),
+      color: statColors.blue,
+    },
+  ];
+
+  const isLoading = spentLoading || catLoading || weeklySpendingLoading || budgetLoading;
 
   return (
     <div className="space-y-8">
@@ -77,7 +115,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {statCards.map((s) => (
           <div key={s.label} className={statCard.container}>
             <div className="flex items-center gap-3">
@@ -86,56 +124,83 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className={statCard.label}>{s.label}</p>
-                <p className={statCard.value}>{s.value}</p>
+                {s.value === null ? (
+                  <Skeleton className="h-6 w-16 mt-1" />
+                ) : (
+                  <p className={statCard.value}>{s.value}</p>
+                )}
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Charts Row - Finance */}
+      {/* Charts - Finance & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="Spending by Category">
-          <SpendingCategoryChart data={getCategoryData()} />
+          {catLoading ? (
+            <div className="space-y-3"><Skeleton className="h-[200px] w-full" /></div>
+          ) : (
+            <SpendingCategoryChart data={categoryData} />
+          )}
         </ChartCard>
-        <ChartCard title="This Week's Spending">
-          <WeeklySpendingChart data={getWeeklySpending()} />
+        <ChartCard title="Weekly Spending">
+          {weeklySpendingLoading ? (
+            <div className="space-y-3"><Skeleton className="h-[200px] w-full" /></div>
+          ) : (
+            <WeeklySpendingChart data={weeklySpending} />
+          )}
         </ChartCard>
       </div>
 
-      {/* Charts Row - Workouts & Budget */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Weekly Workout Frequency">
-          <WeeklyWorkoutChart data={getWeeklyWorkouts()} />
+        <ChartCard title="Workout Frequency">
+          {weeklyWorkoutsLoading ? (
+            <div className="space-y-3"><Skeleton className="h-[200px] w-full" /></div>
+          ) : (
+            <WeeklyWorkoutChart data={weeklyWorkouts} />
+          )}
         </ChartCard>
-        <ChartCard title="Budget Progress (July)">
-          <BudgetProgressChart data={getBudgetProgress()} />
+        <ChartCard title="Budget Progress">
+          {budgetLoading ? (
+            <div className="space-y-3"><Skeleton className="h-[200px] w-full" /></div>
+          ) : (
+            <BudgetProgressChart data={budgetProgress} />
+          )}
         </ChartCard>
       </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Bottom - Recent & Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className={card.base}>
           <h3 className={`${sectionHeader.title} mb-4`}>Recent Workouts</h3>
           <div className="space-y-3">
-            {recentWorkouts.map((w) => (
-              <div key={w.id} className="flex items-center gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-[#f3ece3] flex items-center justify-center text-[#8b6914]">
-                  <Dumbbell size={14} />
+            {recentWorkoutsLoading ? (
+              [1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)
+            ) : recentWorkouts.length > 0 ? (
+              recentWorkouts.slice(0, 3).map((w) => (
+                <div key={w.id} className="flex items-center gap-3 text-sm">
+                  <div className="w-8 h-8 rounded-full bg-[#f3ece3] flex items-center justify-center text-[#8b6914]">
+                    <Dumbbell size={14} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-[var(--color-text)] truncate">
+                      {w.exercise_name}
+                    </p>
+                    <p className="text-[var(--color-text-secondary)] text-xs">
+                      {w.date}
+                    </p>
+                  </div>
+                  <span className="text-xs text-[var(--color-text-muted)] capitalize">
+                    {w.exercise_type}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-[var(--color-text)] truncate">
-                    {w.exercise_name}
-                  </p>
-                  <p className="text-[var(--color-text-secondary)] text-xs">
-                    {w.date}
-                  </p>
-                </div>
-                <span className="text-xs text-[var(--color-text-muted)] capitalize">
-                  {w.exercise_type}
-                </span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-[var(--color-text-muted)] text-sm">
+                No workouts yet
+              </p>
+            )}
           </div>
         </div>
 
@@ -144,8 +209,10 @@ export default function DashboardPage() {
             Upcoming Reminders
           </h3>
           <div className="space-y-3">
-            {upcomingReminders.length > 0 ? (
-              upcomingReminders.map((r) => (
+            {remindersLoading ? (
+              [1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)
+            ) : upcomingReminders.length > 0 ? (
+              upcomingReminders.slice(0, 3).map((r) => (
                 <div key={r.id} className="flex items-center gap-3 text-sm">
                   <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
                     <Bell size={14} />
@@ -177,21 +244,22 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+      </div>
 
-        <div className={card.base}>
-          <h3 className={`${sectionHeader.title} mb-4`}>Quick Actions</h3>
-          <div className="space-y-3">
-            {quickActions.map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className={quickAction.base}
-              >
-                <div className={`${quickAction.dot} ${action.color}`} />
-                {action.label}
-              </Link>
-            ))}
-          </div>
+      {/* Quick Actions */}
+      <div className={card.base}>
+        <h3 className={`${sectionHeader.title} mb-4`}>Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {quickActions.map((action) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              className={quickAction.base}
+            >
+              <div className={`${quickAction.dot} ${action.color}`} />
+              {action.label}
+            </Link>
+          ))}
         </div>
       </div>
     </div>

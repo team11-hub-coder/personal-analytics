@@ -85,12 +85,12 @@ export default function ChartLine({
         )}
         <XAxis
           dataKey={xKey}
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
           axisLine={false}
           tickLine={false}
           tickFormatter={yFormatter}
@@ -99,6 +99,12 @@ export default function ChartLine({
         <Tooltip
           formatter={tooltipFormatter}
           labelFormatter={tooltipLabelFormatter}
+          contentStyle={{
+            backgroundColor: "var(--chart-tooltip-bg)",
+            color: "var(--chart-tooltip-text)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "8px",
+          }}
         />
         <Line
           type={type}

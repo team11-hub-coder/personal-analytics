@@ -100,7 +100,15 @@ export default function ChartPie({
               />
             ))}
           </Pie>
-          <Tooltip formatter={fmt} />
+          <Tooltip
+            formatter={fmt}
+            contentStyle={{
+              backgroundColor: "var(--chart-tooltip-bg)",
+              color: "var(--chart-tooltip-text)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "8px",
+            }}
+          />
         </PieChart>
       </ResponsiveContainer>
 

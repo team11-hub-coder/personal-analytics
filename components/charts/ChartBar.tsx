@@ -74,12 +74,12 @@ export default function ChartBar({
       <BarChart data={data}>
         <XAxis
           dataKey={xKey}
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
           axisLine={false}
           tickLine={false}
           tickFormatter={yFormatter}
@@ -89,6 +89,12 @@ export default function ChartBar({
           formatter={tooltipFormatter}
           labelFormatter={tooltipLabelFormatter}
           cursor={{ fill: "var(--color-surface-hover)" }}
+          contentStyle={{
+            backgroundColor: "var(--chart-tooltip-bg)",
+            color: "var(--chart-tooltip-text)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "8px",
+          }}
         />
         <Bar
           dataKey={yKey}
