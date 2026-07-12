@@ -508,7 +508,7 @@ function ExpenseItem({
   };
 
   // Get icon from category's icon field in database
-  const getCategoryIconDisplay = (iconName: string | null) => {
+  const getCategoryIconDisplay = (iconName: string | null | undefined) => {
     return getCategoryIconInfo(iconName || "MoreHorizontal");
   };
 

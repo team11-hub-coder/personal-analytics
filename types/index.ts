@@ -20,6 +20,7 @@ export interface Category {
 export interface Transaction {
   id: number;
   user_id: string;
+  type: "expense" | "income";
   amount: number;
   category_id: number | null;
   description: string | null;

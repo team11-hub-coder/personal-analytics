@@ -36,7 +36,7 @@ export const transactionSchema = z.object({
     .string()
     .min(1, "Date is required")
     .regex(dateRegex, "Date must be in YYYY-MM-DD format"),
-  receipt_image_url: z.string().url().optional().nullable(),
+  receipt_image_url: z.string().url().optional(),
   entry_source: z.enum(["manual_form", "chatbot_text", "chatbot_voice", "chatbot_receipt", "recurring"]),
 });
 
