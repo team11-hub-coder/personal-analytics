@@ -30,20 +30,20 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
   >("unsupported");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
 
   // Check permission on client only
   useEffect(() => {
     setPermission(getNotificationPermission());
   }, []);
 
-  // Position dropdown relative to trigger
+  // Position dropdown relative to trigger (opens to the left)
   useEffect(() => {
     if (open && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       setDropdownPos({
         top: rect.bottom + 8,
-        left: rect.right + 8,
+        right: window.innerWidth - rect.left + 8,
       });
     }
   }, [open]);
@@ -79,7 +79,7 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
         <div
           ref={dropdownRef}
           className="fixed w-80 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl shadow-black/10 z-[9999] overflow-hidden"
-          style={{ top: dropdownPos.top, left: dropdownPos.left }}
+          style={{ top: dropdownPos.top, right: dropdownPos.right }}
         >
           {/* Header */}
           <div className="px-5 py-4 border-b border-[var(--color-border)]">
