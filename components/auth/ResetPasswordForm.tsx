@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,19 +33,11 @@ export default function ResetPasswordForm() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validToken, setValidToken] = useState<boolean | null>(null);
+  const [validToken] = useState<boolean>(() => {
+    return typeof window !== "undefined" ? !!window.location.hash : false;
+  });
   const router = useRouter();
   const supabase = createClient();
-
-  useEffect(() => {
-    // Check if we have a valid recovery token in the URL
-    const hash = window.location.hash;
-    if (hash) {
-      setValidToken(true);
-    } else {
-      setValidToken(false);
-    }
-  }, []);
 
   const {
     register,

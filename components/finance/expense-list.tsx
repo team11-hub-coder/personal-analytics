@@ -603,9 +603,9 @@ function ExpenseItem({
   return (
     <div className="flex items-center justify-between p-2 bg-[var(--color-surface-hover)] rounded-lg group">
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIconDisplay(transaction.categories?.icon).color}`}>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIconDisplay(transaction.categories?.icon ?? null).color}`}>
           {(() => {
-            const IconComp = getCategoryIconDisplay(transaction.categories?.icon).icon;
+            const IconComp = getCategoryIconDisplay(transaction.categories?.icon ?? null).icon;
             return <IconComp size={14} />;
           })()}
         </div>
