@@ -5,13 +5,16 @@ import { Bell, CheckCircle, AlertCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useReminders, useAddReminder, useUpdateReminder } from "@/hooks/useReminders";
+import { useRealtimeReminders } from "@/hooks/useRealtimeReminders";
 import { ReminderForm } from "@/components/reminders/ReminderForm";
 import { ReminderList } from "@/components/reminders/ReminderList";
+import { ReminderAnalytics } from "@/components/reminders/ReminderAnalytics";
 import { statCard, statColors, pageHeader } from "@/lib/theme";
 import type { Reminder } from "@/types";
 import type { ReminderFormData } from "@/lib/validations";
 
 export default function RemindersPage() {
+  useRealtimeReminders();
   const { data: reminders = [], isLoading } = useReminders();
   const addReminder = useAddReminder();
   const updateReminder = useUpdateReminder();
@@ -134,6 +137,9 @@ export default function RemindersPage() {
 
       {/* Reminder List */}
       <ReminderList onEdit={handleEdit} />
+
+      {/* Analytics */}
+      <ReminderAnalytics />
 
       {/* Add / Edit Form */}
       <ReminderForm
