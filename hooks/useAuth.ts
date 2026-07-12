@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -71,6 +72,17 @@ export function useLogout() {
 
 export function useUser() {
   const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      queryClient.setQueryData(["user"], session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase, queryClient]);
 
   return useQuery({
     queryKey: ["user"],
