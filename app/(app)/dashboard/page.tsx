@@ -10,6 +10,7 @@ import {
   pageHeader,
   sectionHeader,
   quickAction,
+  quickActionColors,
 } from "@/lib/theme";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -38,10 +39,10 @@ import {
 } from "@/hooks/useDashboard";
 
 const quickActions = [
-  { href: "/finance", label: "Add Transaction", color: "bg-emerald-500" },
-  { href: "/workouts", label: "Log Workout", color: "bg-[#8b6914]" },
-  { href: "/tasks", label: "Add Task", color: "bg-amber-500" },
-  { href: "/reminders", label: "Set Reminder", color: "bg-rose-500" },
+  { href: "/finance", label: "Add Transaction", color: quickActionColors.finance },
+  { href: "/workouts", label: "Log Workout", color: quickActionColors.workouts },
+  { href: "/tasks", label: "Add Task", color: quickActionColors.tasks },
+  { href: "/reminders", label: "Set Reminder", color: quickActionColors.reminders },
 ];
 
 function formatFocusTime(mins: number) {

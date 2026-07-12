@@ -126,6 +126,14 @@ export const quickAction = {
   dot: "w-2 h-2 rounded-full",
 } as const;
 
+// Quick action dot colors
+export const quickActionColors = {
+  finance: "bg-emerald-500",
+  workouts: "bg-[#8b6914]",
+  tasks: "bg-amber-500",
+  reminders: "bg-rose-500",
+} as const;
+
 // ─── Chart Colors ──────────────────────────────────────────────
 export const chartColors = [
   "#8b6914", // gold
