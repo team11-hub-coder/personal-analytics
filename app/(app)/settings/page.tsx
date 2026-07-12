@@ -33,13 +33,13 @@ const features = [
     icon: CheckSquare,
     color: "bg-amber-50 text-amber-600",
   },
-  // {
-  //   key: "reminders_enabled" as const,
-  //   label: "General Reminders",
-  //   description: "Email alerts for your custom reminders.",
-  //   icon: Bell,
-  //   color: "bg-rose-50 text-rose-600",
-  // },
+  {
+    key: "reminders_enabled" as const,
+    label: "General Reminders",
+    description: "Email alerts for your custom reminders.",
+    icon: Bell,
+    color: "bg-rose-50 text-rose-600",
+  },
 ] as const;
 
 export default function SettingsPage() {

@@ -165,11 +165,11 @@ SELECT cron.schedule(
 );
 
 -- Reminder alerts: every 15 minutes
--- SELECT cron.schedule(
---   'queue-reminder-alerts',
---   '*/15 * * * *',
---   'SELECT queue_reminder_alerts()'
--- );
+SELECT cron.schedule(
+  'queue-reminder-alerts',
+  '*/15 * * * *',
+  'SELECT queue_reminder_alerts()'
+);
 
 -- Process email queue: every 5 minutes
 SELECT cron.schedule(
