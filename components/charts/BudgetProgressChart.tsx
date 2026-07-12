@@ -1,8 +1,11 @@
 "use client";
 
 interface BudgetItem {
+  id: number;
+  user_id: string;
   category: string;
   monthly_limit: number;
+  month: string;
   spent: number;
   percent: number;
 }
