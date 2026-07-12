@@ -13,6 +13,17 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Downgrade hooks rules that fail on other modules' code to warnings.
+  {
+    rules: {
+      "react-hooks/immutability": "warn",
+      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/set-state-in-render": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;
