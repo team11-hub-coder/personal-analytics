@@ -29,6 +29,7 @@ import {
   X,
   Sun,
   Moon,
+  Settings,
 } from "lucide-react";
 
 const links = [
@@ -40,6 +41,7 @@ const links = [
   { href: "/reminders", icon: Bell, label: "Reminders" },
   { href: "/export", icon: Download, label: "Export" },
   { href: "/profile", icon: User, label: "Profile" },
+  { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export default function Sidebar() {

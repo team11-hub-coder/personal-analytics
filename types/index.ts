@@ -165,3 +165,14 @@ export interface FocusSession {
 }
 
 export type FocusPhase = "idle" | "focus" | "break" | "longBreak";
+
+export interface NotificationPreference {
+  id: number;
+  user_id: string;
+  finance_enabled: boolean;
+  workout_enabled: boolean;
+  tasks_enabled: boolean;
+  reminders_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
