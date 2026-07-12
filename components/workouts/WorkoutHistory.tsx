@@ -5,9 +5,10 @@ import { getWorkouts, deleteWorkout, calculateCalories } from "@/lib/workouts";
 import type { Workout } from "@/types";
 import { card, sectionHeader } from "@/lib/theme";
 import { Dumbbell, Flame, Trash2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { getLocalDateString, parseLocalDate } from "@/lib/dates";
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
@@ -18,7 +19,8 @@ function formatDuration(mins: number | null): string {
 }
 
 function toDateKey(dateStr: string): string {
-  return new Date(dateStr).toISOString().split("T")[0];
+  // Workout dates come as YYYY-MM-DD from the DB, return as-is
+  return dateStr;
 }
 
 const typeColors: Record<string, string> = {
@@ -35,7 +37,7 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const [tableMissing, setTableMissing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(() => getLocalDateString());
 
   useEffect(() => {
     setLoading(true);
@@ -54,19 +56,19 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
 
   // Navigate dates
   const goToPrevDay = () => {
-    const d = new Date(selectedDate);
+    const d = parseLocalDate(selectedDate);
     d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split("T")[0]);
+    setSelectedDate(getLocalDateString(d));
   };
 
   const goToNextDay = () => {
-    const d = new Date(selectedDate);
+    const d = parseLocalDate(selectedDate);
     d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split("T")[0]);
+    setSelectedDate(getLocalDateString(d));
   };
 
   const goToToday = () => {
-    setSelectedDate(new Date().toISOString().split("T")[0]);
+    setSelectedDate(getLocalDateString());
   };
 
   // Filter workouts by selected date
@@ -96,9 +98,8 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
   };
 
   const formatDisplayDate = (dateStr: string) => {
-    const d = new Date(dateStr + "T00:00:00");
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const d = parseLocalDate(dateStr);
+    const today = parseLocalDate(getLocalDateString());
     const diff = Math.floor((today.getTime() - d.getTime()) / 86400000);
     if (diff === 0) return "Today";
     if (diff === 1) return "Yesterday";
@@ -157,7 +158,7 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
           </div>
 
           {/* Today button */}
-          {selectedDate !== new Date().toISOString().split("T")[0] && (
+          {selectedDate !== getLocalDateString() && (
             <div className="flex justify-center mt-2">
               <button
                 onClick={goToToday}

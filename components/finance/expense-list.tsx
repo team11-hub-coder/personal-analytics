@@ -13,6 +13,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { card, button } from "@/lib/theme";
 import { formatCurrency } from "@/lib/currency";
 import { getCategoryIconInfo } from "@/lib/icons";
+import { parseLocalDate, getLocalDateString } from "@/lib/dates";
 import {
   inlineTransactionSchema,
   type InlineTransactionFormData,
@@ -56,10 +57,11 @@ export default function ExpenseList() {
   // Calculate max date from (3 months before end date)
   const getMaxFromDate = (endDate: string): string => {
     if (!endDate) return "";
-    const end = new Date(endDate);
+    const end = parseLocalDate(endDate);
     const maxStart = new Date(end);
     maxStart.setMonth(maxStart.getMonth() - 3);
-    return maxStart < new Date(minDate) ? minDate : maxStart.toISOString().split("T")[0];
+    const maxStartStr = getLocalDateString(maxStart);
+    return maxStartStr < minDate ? minDate : maxStartStr;
   };
 
   // Calculate min date for end date (must be after start date)
@@ -370,8 +372,8 @@ function GroupedTransactions({
   const sortedDates = Object.keys(groupedByDate).sort().reverse();
 
   const formatDateHeader = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
+    const date = parseLocalDate(dateStr);
+    const today = parseLocalDate(getLocalDateString());
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 

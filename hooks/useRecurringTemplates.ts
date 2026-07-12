@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
+import { getLocalDateString } from "@/lib/dates";
 import type { RecurringTemplate } from "@/types";
 
 // Helper to get authenticated user or throw
@@ -147,7 +148,7 @@ export function useProcessRecurringTemplates() {
       } = await supabase.auth.getUser();
 
       // Get all active templates that are due
-      const today = new Date().toISOString().split("T")[0];
+      const today = getLocalDateString();
       const { data: templates, error: fetchError } = await supabase
         .from("recurring_templates")
         .select("*, categories(id, name, icon)")

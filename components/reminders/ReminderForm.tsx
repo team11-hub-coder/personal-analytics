@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { reminderSchema, type ReminderFormData } from "@/lib/validations";
 import type { Reminder } from "@/types";
+import { toLocalDatetimeString, toISOWithOffset } from "@/lib/dates";
 
 interface ReminderFormProps {
   open: boolean;
@@ -73,7 +74,12 @@ export function ReminderForm({
   }, [open, initialData, reset]);
 
   const handleFormSubmit = (data: ReminderFormData) => {
-    onSubmit(data);
+    // Convert local datetime-local value to ISO with timezone offset
+    // so Supabase timestamptz stores the correct absolute instant
+    onSubmit({
+      ...data,
+      remind_at: toISOWithOffset(data.remind_at),
+    });
   };
 
   return (

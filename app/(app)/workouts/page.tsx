@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useUser } from "@/hooks/useAuth";
 import { addWorkout, calculateCalories } from "@/lib/workouts";
 import { useUIStore } from "@/store/ui";
+import { getLocalDateString } from "@/lib/dates";
 import WorkoutStats from "@/components/workouts/WorkoutStats";
 import WorkoutHistory from "@/components/workouts/WorkoutHistory";
 import CameraWorkout from "@/components/workouts/CameraWorkout";
@@ -152,7 +153,7 @@ export default function WorkoutsPage() {
         distance_km: data.distance_km,
         calories,
         notes: `${data.category}${data.notes ? ` - ${data.notes}` : ""}`,
-        date: new Date().toISOString(),
+        date: getLocalDateString(),
       });
       triggerRefresh();
     },
@@ -192,7 +193,7 @@ export default function WorkoutsPage() {
         distance_km: null,
         calories,
         notes: `AI Generated - ${generatedWorkout.title}`,
-        date: new Date().toISOString(),
+        date: getLocalDateString(),
       });
     }
     closeAI();
@@ -246,7 +247,7 @@ export default function WorkoutsPage() {
         distance_km: null,
         calories,
         notes: "Form Check - Camera",
-        date: new Date().toISOString(),
+        date: getLocalDateString(),
       });
       toggleCamera();
       setFormCheckExercise("");

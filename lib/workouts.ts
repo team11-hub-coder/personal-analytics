@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/client";
 import type { Workout, WorkoutTemplate } from "@/types";
+import { parseLocalDate, getLocalDateString } from "@/lib/dates";
 
 const supabase = createClient();
 
@@ -124,15 +125,15 @@ export async function getWorkoutStats(): Promise<{
   if (error || !data) return { totalWorkouts: 0, totalCalories: 0, totalMinutes: 0, thisWeek: 0 };
 
   const workouts = data as Workout[];
-  const now = new Date();
-  const weekAgo = new Date(now);
+  const today = parseLocalDate(getLocalDateString());
+  const weekAgo = new Date(today);
   weekAgo.setDate(weekAgo.getDate() - 7);
 
   return {
     totalWorkouts: workouts.length,
     totalCalories: workouts.reduce((sum, w) => sum + (w.calories ?? calculateCalories(w)), 0),
     totalMinutes: workouts.reduce((sum, w) => sum + (w.duration_min ?? 0), 0),
-    thisWeek: workouts.filter((w) => new Date(w.date) >= weekAgo).length,
+    thisWeek: workouts.filter((w) => parseLocalDate(w.date) >= weekAgo).length,
   };
 }
 
