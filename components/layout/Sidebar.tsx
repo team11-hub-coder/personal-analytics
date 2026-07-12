@@ -16,14 +16,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import {
   LayoutDashboard,
   DollarSign,
   Dumbbell,
   CheckSquare,
   Bell,
-  Timer,
   User,
   Download,
   LogOut,
@@ -36,7 +34,6 @@ const links = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/finance", icon: DollarSign, label: "Finance" },
   { href: "/workouts", icon: Dumbbell, label: "Workouts" },
-  { href: "/focus", icon: Timer, label: "Focus" },
   { href: "/tasks", icon: CheckSquare, label: "Tasks" },
   { href: "/reminders", icon: Bell, label: "Reminders" },
   { href: "/export", icon: Download, label: "Export" },
@@ -76,15 +73,12 @@ export default function Sidebar() {
             </h1>
             <p className="text-sm text-slate-400 mt-1">Life Dashboard</p>
           </div>
-          <div className="flex items-center gap-1">
-            <NotificationBell />
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-slate-400 hover:text-white p-1"
-            >
-              <X size={20} />
-            </button>
-          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden text-slate-400 hover:text-white p-1"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         {/* Nav links */}
