@@ -166,18 +166,16 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {statCards.map((s) => (
           <div key={s.label} className={statCard.container}>
-            <div className="flex items-center gap-3">
+            <p className="text-[var(--color-text-white)] text-sm font-medium truncate">{s.label}</p>
+            <div className="flex items-center gap-4 mt-2">
               <div className={`${statCard.iconWrapper} ${s.color}`}>
                 {s.icon}
               </div>
-              <div className="flex flex-col justify-center min-w-0">
-                <p className={statCard.label}>{s.label}</p>
-                {s.value === null ? (
-                  <Skeleton className="h-6 w-16 mt-1" />
-                ) : (
-                  <p className={statCard.value}>{s.value}</p>
-                )}
-              </div>
+              {s.value === null ? (
+                <Skeleton className="h-7 w-16" />
+              ) : (
+                <p className={statCard.value}>{s.value}</p>
+              )}
             </div>
           </div>
         ))}
