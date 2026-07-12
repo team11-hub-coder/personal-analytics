@@ -129,3 +129,19 @@ export interface ChatMessage {
   content: string;
   created_at: string;
 }
+
+export interface FocusSession {
+  id: string;
+  user_id: string;
+  title: string;
+  mode: "pomodoro" | "stopwatch";
+  duration_minutes: number;
+  break_minutes: number;
+  completed: boolean;
+  completed_count: number;
+  started_at: string;
+  ended_at: string | null;
+  created_at: string;
+}
+
+export type FocusPhase = "idle" | "focus" | "break" | "longBreak";
