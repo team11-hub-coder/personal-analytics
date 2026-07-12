@@ -171,6 +171,14 @@ export default function WorkoutsPage() {
     setGenerating(false);
   };
 
+  const closeAI = () => {
+    setAiOpen(false);
+    setAiStep("pick");
+    setSelectedMuscle("");
+    setGeneratedWorkout(null);
+    setGenerating(false);
+  };
+
   const handleLogFromAI = useCallback(async () => {
     if (!user || !generatedWorkout) return;
     for (const ex of generatedWorkout.exercises) {
@@ -199,14 +207,6 @@ export default function WorkoutsPage() {
     closeAI();
     triggerRefresh();
   }, [user, generatedWorkout]);
-
-  const closeAI = () => {
-    setAiOpen(false);
-    setAiStep("pick");
-    setSelectedMuscle("");
-    setGeneratedWorkout(null);
-    setGenerating(false);
-  };
 
   // ─── Form Check ──────────────────────────────────────
   const mapExerciseToType = (name: string): ExerciseType => {
