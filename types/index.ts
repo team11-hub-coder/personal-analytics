@@ -71,6 +71,35 @@ export interface Workout {
   created_at: string;
 }
 
+export interface WorkoutTemplate {
+  id: string;
+  user_id: string;
+  title: string;
+  duration_minutes: number;
+  equipment: string[];
+  target_muscles: string[];
+  difficulty: "beginner" | "intermediate" | "advanced";
+  exercises: WorkoutExercise[];
+  created_at: string;
+}
+
+export interface WorkoutExercise {
+  name: string;
+  type: "strength" | "cardio" | "flexibility";
+  sets: number;
+  reps: number | null;
+  weight: number | null;
+  duration_min: number | null;
+  rest_seconds: number;
+  muscle_group: string;
+}
+
+export interface GeneratedWorkout {
+  title: string;
+  duration: number;
+  exercises: WorkoutExercise[];
+}
+
 export interface Task {
   id: number;
   user_id: string;
