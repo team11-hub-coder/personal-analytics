@@ -273,6 +273,28 @@ create trigger on_auth_user_created
 
 ## Daily Rollup System
 
+### Focus Sessions Table
+
+```sql
+-- Focus sessions: tracks pomodoro and stopwatch sessions
+create table focus_sessions (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  title text not null default '',
+  mode text not null check (mode in ('pomodoro', 'custom', 'stopwatch')),
+  duration_minutes int not null,
+  break_minutes int not null default 5,
+  completed boolean default false,
+  completed_count int default 0,
+  started_at timestamptz not null,
+  ended_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table focus_sessions enable row level security;
+create policy "own rows" on focus_sessions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
+
 ### Summary Tables
 
 ```sql
@@ -319,8 +341,8 @@ create index idx_weekly_summary_user_week on weekly_summary(user_id, week_start 
 -- RLS
 alter table daily_summary enable row level security;
 alter table weekly_summary enable row level security;
-create policy "own rows" on daily_summary for all using (auth.uid() = user_id);
-create policy "own rows" on weekly_summary for all using (auth.uid() = user_id);
+create policy "own rows" on daily_summary for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own rows" on weekly_summary for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 ```
 
 ### Aggregation Functions
@@ -395,6 +417,17 @@ $$ language plpgsql;
 ```
 
 ### Cron Setup
+
+First, set the required PostgreSQL settings (run in Supabase SQL Editor):
+
+```sql
+-- Set your Supabase project URL and service role key
+-- Replace values with your actual project credentials from Supabase Dashboard > Settings > API
+ALTER DATABASE postgres SET app.settings.supabase_url = 'https://your-project.supabase.co';
+ALTER DATABASE postgres SET app.settings.service_role_key = 'your-service-role-key';
+```
+
+Then enable extensions and schedule the cron job:
 
 ```sql
 create extension if not exists pg_cron;
