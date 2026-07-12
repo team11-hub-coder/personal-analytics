@@ -105,7 +105,7 @@ export default function DashboardPage() {
     {
       icon: <DollarSign size={20} />,
       label: labels[timeRange].spent,
-      value: spentLoading ? null : `$${(activeSummary?.total_spent ?? spentToday).toFixed(2)}`,
+      value: spentLoading ? null : `$${Number(activeSummary?.total_spent ?? spentToday).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`,
       color: statColors.emerald,
     },
     {
