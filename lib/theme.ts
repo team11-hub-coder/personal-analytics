@@ -48,7 +48,7 @@ export const card = {
 export const statCard = {
   container:
     "bg-(--color-surface) rounded-xl p-5 shadow-sm border border-(--color-border)",
-  iconWrapper: "w-10 h-10 rounded-lg flex items-center justify-center",
+  iconWrapper: "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
   label: "text-sm text-(--color-text-secondary)",
   value: "text-xl font-bold tracking-tight text-(--color-text)",
 } as const;

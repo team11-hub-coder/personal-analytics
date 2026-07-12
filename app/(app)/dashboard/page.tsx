@@ -170,7 +170,7 @@ export default function DashboardPage() {
               <div className={`${statCard.iconWrapper} ${s.color}`}>
                 {s.icon}
               </div>
-              <div>
+              <div className="flex flex-col justify-center min-w-0">
                 <p className={statCard.label}>{s.label}</p>
                 {s.value === null ? (
                   <Skeleton className="h-6 w-16 mt-1" />
