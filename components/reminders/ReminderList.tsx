@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Bell,
   Edit2,
@@ -11,6 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   useReminders,
   useDeleteReminder,
@@ -28,6 +36,7 @@ export function ReminderList({ onEdit }: ReminderListProps) {
   const { data: reminders = [], isLoading } = useReminders();
   const deleteReminder = useDeleteReminder();
   const toggleReminder = useToggleReminder();
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const sortedReminders = useMemo(
     () =>
@@ -111,9 +120,11 @@ export function ReminderList({ onEdit }: ReminderListProps) {
         {sortedReminders.map((reminder) => (
           <div
             key={reminder.id}
-            className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+            className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-colors ${
               isOverdue(reminder.remind_at, reminder.is_active)
-                ? "border-red-200 bg-red-50/50"
+                ? "border-yellow-500"
+                : reminder.is_active
+                ? "border-green-500"
                 : "border-[var(--color-border)]"
             } ${
               !reminder.is_active ? "opacity-50" : ""
@@ -187,11 +198,7 @@ export function ReminderList({ onEdit }: ReminderListProps) {
               <Button
                 variant="ghost"
                 size="icon-xs"
-                onClick={() => {
-                  if (confirm("Delete this reminder?")) {
-                    deleteReminder.mutate(reminder.id);
-                  }
-                }}
+                onClick={() => setDeleteId(reminder.id)}
                 disabled={deleteReminder.isPending}
                 className="text-[var(--color-text-muted)] hover:text-red-500"
               >
@@ -201,6 +208,41 @@ export function ReminderList({ onEdit }: ReminderListProps) {
           </div>
         ))}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete Reminder</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this reminder? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="!justify-center gap-3 py-2">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setDeleteId(null)}
+              className="border-[var(--color-border)] px-8 py-3 text-base"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="lg"
+              onClick={() => {
+                if (deleteId) {
+                  deleteReminder.mutate(deleteId, {
+                    onSuccess: () => setDeleteId(null),
+                  });
+                }
+              }}
+              className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-8 py-3 text-base"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
