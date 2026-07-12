@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DollarSign, Dumbbell, CheckSquare, Bell, Timer } from "lucide-react";
 import Link from "next/link";
 import {
@@ -79,24 +79,44 @@ export default function DashboardPage() {
   const { data: weeklySummary } = useDashboardWeeklySummary();
   const { data: monthlySummary } = useDashboardMonthlySummary();
 
+  // Aggregate summary based on active tab
+  const activeSummary = useMemo(() => {
+    if (timeRange === "daily") return dailySummary;
+    const data = timeRange === "weekly" ? weeklySummary : monthlySummary;
+    if (!data || data.length === 0) return null;
+    return {
+      total_spent: data.reduce((s, d) => s + d.total_spent, 0),
+      workout_count: data.reduce((s, d) => s + d.workout_count, 0),
+      tasks_pending: data[data.length - 1]?.tasks_pending ?? 0,
+      focus_minutes: data.reduce((s, d) => s + d.focus_minutes, 0),
+    };
+  }, [timeRange, dailySummary, weeklySummary, monthlySummary]);
+
+  // Dynamic labels based on tab
+  const labels = {
+    daily: { spent: "Spent Today", workouts: "Workouts Today", tasks: "Pending Tasks", focus: "Focus Today" },
+    weekly: { spent: "Spent This Week", workouts: "Workouts This Week", tasks: "Pending Tasks", focus: "Focus This Week" },
+    monthly: { spent: "Spent This Month", workouts: "Workouts This Month", tasks: "Pending Tasks", focus: "Focus This Month" },
+  };
+
   // ─── Stat Cards ───────────────────────────────────────
   const statCards = [
     {
       icon: <DollarSign size={20} />,
-      label: "Spent Today",
-      value: spentLoading ? null : `$${(dailySummary?.total_spent ?? spentToday).toFixed(2)}`,
+      label: labels[timeRange].spent,
+      value: spentLoading ? null : `$${(activeSummary?.total_spent ?? spentToday).toFixed(2)}`,
       color: statColors.emerald,
     },
     {
       icon: <Dumbbell size={20} />,
-      label: "Workouts Today",
-      value: workoutsLoading ? null : (dailySummary?.workout_count ?? todayWorkouts).toString(),
+      label: labels[timeRange].workouts,
+      value: workoutsLoading ? null : (activeSummary?.workout_count ?? todayWorkouts).toString(),
       color: statColors.gold,
     },
     {
       icon: <CheckSquare size={20} />,
-      label: "Pending Tasks",
-      value: tasksLoading ? null : (dailySummary?.tasks_pending ?? pendingTasks).toString(),
+      label: labels[timeRange].tasks,
+      value: tasksLoading ? null : (activeSummary?.tasks_pending ?? pendingTasks).toString(),
       color: statColors.amber,
     },
     {
@@ -107,8 +127,8 @@ export default function DashboardPage() {
     },
     {
       icon: <Timer size={20} />,
-      label: "Focus Today",
-      value: formatFocusTime(dailySummary?.focus_minutes ?? todayFocusMinutes),
+      label: labels[timeRange].focus,
+      value: formatFocusTime(activeSummary?.focus_minutes ?? todayFocusMinutes),
       color: statColors.blue,
     },
   ];
