@@ -32,10 +32,15 @@ export function useChatMessages() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Get start of today (midnight) to reset chat daily
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
       const { data, error } = await supabase
         .from("chat_messages")
         .select("*")
         .eq("user_id", user.id)
+        .gte("created_at", todayStart.toISOString())
         .order("created_at", { ascending: true });
 
       if (error) {

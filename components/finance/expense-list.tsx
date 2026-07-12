@@ -617,7 +617,7 @@ function ExpenseItem({
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIconDisplay(transaction.categories?.icon ?? null).color}`}>
           {(() => {
             const IconComp = getCategoryIconDisplay(transaction.categories?.icon ?? null).icon;
-            return <IconComp size={14} />;
+            return <IconComp size={16} />;
           })()}
         </div>
         <div className="flex items-center gap-2">
@@ -636,7 +636,7 @@ function ExpenseItem({
             onClick={() => setIsEditing(true)}
             className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           >
-            <Pencil size={12} />
+            <Pencil size={16} />
           </button>
           <button
             onClick={handleDelete}
@@ -644,9 +644,9 @@ function ExpenseItem({
             className="p-1 text-[var(--color-text-muted)] hover:text-red-500"
           >
             {deleteTransaction.isPending ? (
-              <Loader2 size={12} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <Trash2 size={12} />
+              <Trash2 size={16} />
             )}
           </button>
         </div>

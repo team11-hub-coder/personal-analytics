@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FileText, FileJson, Download, Calendar } from "lucide-react";
+import { FileText, FileJson, Download, Calendar, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransactions } from "@/hooks/useExpenses";
@@ -53,6 +53,25 @@ function downloadJSON(data: unknown, filename: string) {
 export default function ExportPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [downloading, setDownloading] = useState<Record<string, "idle" | "downloading" | "success">>({});
+
+  const handleExport = async (title: string, onExportFn: () => void) => {
+    setDownloading((prev) => ({ ...prev, [title]: "downloading" }));
+    
+    // Simulate/play loading micro-animation
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    try {
+      onExportFn();
+      setDownloading((prev) => ({ ...prev, [title]: "success" }));
+      setTimeout(() => {
+        setDownloading((prev) => ({ ...prev, [title]: "idle" }));
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      setDownloading((prev) => ({ ...prev, [title]: "idle" }));
+    }
+  };
 
   // Fetch data
   const { data: transactions = [], isLoading: txLoading } = useTransactions();
@@ -164,7 +183,7 @@ export default function ExportPage() {
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] text-sm"
+              className="px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] text-sm dark:scheme-dark"
             />
           </div>
           <div>
@@ -173,14 +192,14 @@ export default function ExportPage() {
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] text-sm"
+              className="px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] text-sm dark:scheme-dark"
             />
           </div>
           {(dateFrom || dateTo) && (
             <div className="flex items-end">
               <button
                 onClick={() => { setDateFrom(""); setDateTo(""); }}
-                className="px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
+                className="px-3 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-(--color-surface-hover) rounded-lg transition-colors"
               >
                 Clear
               </button>
@@ -194,39 +213,64 @@ export default function ExportPage() {
         {isLoading ? (
           <>
             {[1, 2, 3].map((i) => (
-              <div key={i} className={card.base}>
-                <Skeleton className="h-12 w-full mb-4" />
-                <Skeleton className="h-4 w-24 mb-4" />
-                <Skeleton className="h-10 w-full" />
+              <div key={i} className={card.base + " flex flex-col h-full justify-between"}>
+                <div>
+                  <Skeleton className="h-12 w-full mb-4" />
+                  <Skeleton className="h-4 w-24 mb-4" />
+                </div>
+                <Skeleton className="h-10 w-full mt-auto" />
               </div>
             ))}
           </>
         ) : (
-          exportCards.map((c) => (
-            <div key={c.title} className={card.base}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${c.color}`}>
-                  {c.icon}
-                </div>
+          exportCards.map((c) => {
+            const status = downloading[c.title] || "idle";
+            return (
+              <div key={c.title} className={card.base + " flex flex-col h-full justify-between"}>
                 <div>
-                  <p className="font-semibold text-[var(--color-text)]">{c.title}</p>
-                  <p className="text-sm text-[var(--color-text-secondary)]">{c.description}</p>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${c.color}`}>
+                      {c.icon}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[var(--color-text)]">{c.title}</p>
+                      <p className="text-sm text-[var(--color-text-secondary)]">{c.description}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-[var(--color-text-muted)] mb-4">
+                    {c.count} records
+                  </p>
                 </div>
+                <Button
+                  variant="outline"
+                  className={`w-full border-[var(--color-border)] gap-2 mt-auto transition-all ${
+                    status === "success"
+                      ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500"
+                      : ""
+                  }`}
+                  onClick={() => handleExport(c.title, c.onExport)}
+                  disabled={c.count === 0 || status === "downloading"}
+                >
+                  {status === "downloading" ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Downloading...
+                    </>
+                  ) : status === "success" ? (
+                    <>
+                      <Check size={16} />
+                      Downloaded!
+                    </>
+                  ) : (
+                    <>
+                      <Download size={16} />
+                      Download
+                    </>
+                  )}
+                </Button>
               </div>
-              <p className="text-sm text-[var(--color-text-muted)] mb-4">
-                {c.count} records
-              </p>
-              <Button
-                variant="outline"
-                className="w-full border-[var(--color-border)] gap-2"
-                onClick={c.onExport}
-                disabled={c.count === 0}
-              >
-                <Download size={16} />
-                Download
-              </Button>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

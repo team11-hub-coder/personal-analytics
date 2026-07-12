@@ -108,6 +108,8 @@ export default function ChartPie({
               border: "1px solid var(--color-border)",
               borderRadius: "8px",
             }}
+            labelStyle={{ color: "var(--chart-tooltip-text)" }}
+            itemStyle={{ color: "var(--chart-tooltip-text)" }}
           />
         </PieChart>
       </ResponsiveContainer>
