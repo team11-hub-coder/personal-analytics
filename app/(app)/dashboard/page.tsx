@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { DollarSign, Dumbbell, CheckSquare, Bell, Timer } from "lucide-react";
 import Link from "next/link";
 import {
@@ -31,6 +32,9 @@ import {
   useDashboardTodayWorkouts,
   useDashboardWeeklyWorkouts,
   useDashboardRecentWorkouts,
+  useDashboardDailySummary,
+  useDashboardWeeklySummary,
+  useDashboardMonthlySummary,
 } from "@/hooks/useDashboard";
 
 const quickActions = [
@@ -69,24 +73,30 @@ export default function DashboardPage() {
   // ─── Focus ─────────────────────────────────────────────
   const { data: todayFocusMinutes = 0 } = useTodayFocusMinutes();
 
+  // ─── Summary Data ───────────────────────────────────────
+  const [timeRange, setTimeRange] = useState<"daily" | "weekly" | "monthly">("daily");
+  const { data: dailySummary } = useDashboardDailySummary();
+  const { data: weeklySummary } = useDashboardWeeklySummary();
+  const { data: monthlySummary } = useDashboardMonthlySummary();
+
   // ─── Stat Cards ───────────────────────────────────────
   const statCards = [
     {
       icon: <DollarSign size={20} />,
       label: "Spent Today",
-      value: spentLoading ? null : `$${spentToday.toFixed(2)}`,
+      value: spentLoading ? null : `$${(dailySummary?.total_spent ?? spentToday).toFixed(2)}`,
       color: statColors.emerald,
     },
     {
       icon: <Dumbbell size={20} />,
       label: "Workouts Today",
-      value: workoutsLoading ? null : todayWorkouts.toString(),
+      value: workoutsLoading ? null : (dailySummary?.workout_count ?? todayWorkouts).toString(),
       color: statColors.gold,
     },
     {
       icon: <CheckSquare size={20} />,
       label: "Pending Tasks",
-      value: tasksLoading ? null : pendingTasks.toString(),
+      value: tasksLoading ? null : (dailySummary?.tasks_pending ?? pendingTasks).toString(),
       color: statColors.amber,
     },
     {
@@ -98,7 +108,7 @@ export default function DashboardPage() {
     {
       icon: <Timer size={20} />,
       label: "Focus Today",
-      value: formatFocusTime(todayFocusMinutes),
+      value: formatFocusTime(dailySummary?.focus_minutes ?? todayFocusMinutes),
       color: statColors.blue,
     },
   ];
@@ -112,6 +122,23 @@ export default function DashboardPage() {
         <p className={pageHeader.subtitle}>
           Here&apos;s your overview for today.
         </p>
+      </div>
+
+      {/* Time Range Tabs */}
+      <div className="flex gap-2">
+        {(["daily", "weekly", "monthly"] as const).map((range) => (
+          <button
+            key={range}
+            onClick={() => setTimeRange(range)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              timeRange === range
+                ? "bg-[var(--color-primary)] text-white"
+                : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+            }`}
+          >
+            {range.charAt(0).toUpperCase() + range.slice(1)}
+          </button>
+        ))}
       </div>
 
       {/* Stat Cards */}
