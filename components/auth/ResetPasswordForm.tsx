@@ -33,8 +33,9 @@ export default function ResetPasswordForm() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [validToken] = useState<boolean>(() => {
-    return typeof window !== "undefined" ? !!window.location.hash : false;
+  const [validToken] = useState<boolean | null>(() => {
+    if (typeof window === "undefined") return null;
+    return !!window.location.hash;
   });
   const router = useRouter();
   const supabase = createClient();
