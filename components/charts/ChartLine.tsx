@@ -48,6 +48,8 @@ interface ChartLineProps {
     color?: string;
     label?: string;
   };
+  /** Custom Y-Axis width to prevent labels from clipping */
+  yAxisWidth?: number;
 }
 
 export default function ChartLine({
@@ -66,6 +68,7 @@ export default function ChartLine({
   height = 200,
   emptyText = "No data yet",
   secondLine,
+  yAxisWidth,
 }: ChartLineProps) {
   if (!data || data.length === 0) {
     return (
@@ -85,20 +88,28 @@ export default function ChartLine({
         )}
         <XAxis
           dataKey={xKey}
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
           axisLine={false}
           tickLine={false}
           tickFormatter={yFormatter}
-          width={yFormatter ? 45 : 30}
+          width={yAxisWidth !== undefined ? yAxisWidth : (yFormatter ? 60 : 35)}
         />
         <Tooltip
           formatter={tooltipFormatter}
           labelFormatter={tooltipLabelFormatter}
+          contentStyle={{
+            backgroundColor: "var(--chart-tooltip-bg)",
+            color: "var(--chart-tooltip-text)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "8px",
+          }}
+          labelStyle={{ color: "var(--chart-tooltip-text)" }}
+          itemStyle={{ color: "var(--chart-tooltip-text)" }}
         />
         <Line
           type={type}

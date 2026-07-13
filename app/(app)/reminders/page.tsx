@@ -5,13 +5,17 @@ import { Bell, CheckCircle, AlertCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useReminders, useAddReminder, useUpdateReminder } from "@/hooks/useReminders";
+import { useRealtimeReminders } from "@/hooks/useRealtimeReminders";
 import { ReminderForm } from "@/components/reminders/ReminderForm";
 import { ReminderList } from "@/components/reminders/ReminderList";
+import { ReminderAnalytics } from "@/components/reminders/ReminderAnalytics";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { statCard, statColors, pageHeader } from "@/lib/theme";
 import type { Reminder } from "@/types";
 import type { ReminderFormData } from "@/lib/validations";
 
 export default function RemindersPage() {
+  useRealtimeReminders();
   const { data: reminders = [], isLoading } = useReminders();
   const addReminder = useAddReminder();
   const updateReminder = useUpdateReminder();
@@ -92,13 +96,16 @@ export default function RemindersPage() {
             Never miss important events and deadlines.
           </p>
         </div>
-        <Button
-          onClick={() => setFormOpen(true)}
-          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Reminder
-        </Button>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <Button
+            onClick={() => setFormOpen(true)}
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Reminder
+          </Button>
+        </div>
       </div>
 
       {/* Stat Cards */}
@@ -134,6 +141,9 @@ export default function RemindersPage() {
 
       {/* Reminder List */}
       <ReminderList onEdit={handleEdit} />
+
+      {/* Analytics */}
+      <ReminderAnalytics />
 
       {/* Add / Edit Form */}
       <ReminderForm

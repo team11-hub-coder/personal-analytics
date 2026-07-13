@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { useUser } from "@/hooks/useAuth";
-import { addWorkout, calculateCalories } from "@/lib/workouts";
+import { addWorkout, calculateCalories, getLocalISOString } from "@/lib/workouts";
+import { useGenerateWorkout } from "@/hooks/useAI";
+import { useProfile } from "@/hooks/useProfile";
+import { useWorkouts } from "@/hooks/useWorkouts";
 import { useUIStore } from "@/store/ui";
-import { getLocalDateString } from "@/lib/dates";
 import WorkoutStats from "@/components/workouts/WorkoutStats";
 import WorkoutHistory from "@/components/workouts/WorkoutHistory";
 import CameraWorkout from "@/components/workouts/CameraWorkout";
@@ -14,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { GeneratedWorkout, WorkoutExercise } from "@/types";
 import type { ExerciseType } from "@/lib/poseDetection";
-import { Plus, Sparkles, Camera, CameraOff, X, ArrowLeft, Loader2, Dumbbell, Target, Zap, Clock } from "lucide-react";
+import { Plus, Sparkles, Camera, CameraOff, X, ArrowLeft, Loader2, Dumbbell, Target, Zap, Clock, Flame } from "lucide-react";
 
 const muscleGroupOptions = [
   { id: "chest", label: "Chest", icon: "💪" },
@@ -153,7 +155,7 @@ export default function WorkoutsPage() {
         distance_km: data.distance_km,
         calories,
         notes: `${data.category}${data.notes ? ` - ${data.notes}` : ""}`,
-        date: getLocalDateString(),
+        date: getLocalISOString(),
       });
       triggerRefresh();
     },
@@ -161,14 +163,21 @@ export default function WorkoutsPage() {
   );
 
   // ─── AI Generate ─────────────────────────────────────
+  const generateWorkout = useGenerateWorkout();
+
   const handleMusclePick = async (muscleId: string) => {
     setSelectedMuscle(muscleId);
     setGenerating(true);
     setAiStep("preview");
-    // Simulate generation delay
-    await new Promise((r) => setTimeout(r, 1200));
-    setGeneratedWorkout(workoutTemplates[muscleId] ?? workoutTemplates["full-body"]);
-    setGenerating(false);
+    try {
+      const result = await generateWorkout.mutateAsync({ muscleGroup: muscleId, duration: 30 });
+      setGeneratedWorkout(result as unknown as GeneratedWorkout);
+    } catch {
+      // Fallback to template on error
+      setGeneratedWorkout(workoutTemplates[muscleId] ?? workoutTemplates["full-body"]);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const closeAI = () => {
@@ -182,14 +191,16 @@ export default function WorkoutsPage() {
   const handleLogFromAI = useCallback(async () => {
     if (!user || !generatedWorkout) return;
     for (const ex of generatedWorkout.exercises) {
-      const calories = calculateCalories({
-        exercise_type: ex.type,
-        sets: ex.sets,
-        reps: ex.reps,
-        weight: null,
-        duration_min: ex.duration_min,
-        distance_km: null,
-      });
+      // Use AI-estimated calories if available, otherwise calculate
+      const calories = (ex as unknown as Record<string, unknown>).calories as number
+        || calculateCalories({
+            exercise_type: ex.type,
+            sets: ex.sets,
+            reps: ex.reps,
+            weight: null,
+            duration_min: ex.duration_min,
+            distance_km: null,
+          });
       await addWorkout({
         user_id: user.id,
         exercise_type: ex.type,
@@ -201,7 +212,7 @@ export default function WorkoutsPage() {
         distance_km: null,
         calories,
         notes: `AI Generated - ${generatedWorkout.title}`,
-        date: getLocalDateString(),
+        date: getLocalISOString(),
       });
     }
     closeAI();
@@ -247,7 +258,7 @@ export default function WorkoutsPage() {
         distance_km: null,
         calories,
         notes: "Form Check - Camera",
-        date: getLocalDateString(),
+        date: getLocalISOString(),
       });
       toggleCamera();
       setFormCheckExercise("");
@@ -349,6 +360,9 @@ export default function WorkoutsPage() {
       {/* Stats */}
       <WorkoutStats />
 
+      {/* Daily Calorie Progress */}
+      <CalorieProgress refreshKey={refreshKey} />
+
       {/* Workout History */}
       <WorkoutHistory refreshKey={refreshKey} />
 
@@ -429,23 +443,36 @@ export default function WorkoutsPage() {
                     <span className="flex items-center gap-1"><Clock size={14} /> {generatedWorkout.duration} min</span>
                     <span className="flex items-center gap-1"><Dumbbell size={14} /> {generatedWorkout.exercises.length} exercises</span>
                   </div>
+                  {(generatedWorkout as unknown as { summary?: string }).summary && (
+                    <p className="text-xs p-3 rounded-lg" style={{ backgroundColor: "var(--color-surface-hover)", color: "var(--color-text-secondary)" }}>
+                      {(generatedWorkout as unknown as { summary: string }).summary}
+                    </p>
+                  )}
                   <div className="space-y-2">
-                    {generatedWorkout.exercises.map((ex, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-3 rounded-lg"
-                        style={{ backgroundColor: "var(--color-surface-hover)" }}
-                      >
-                        <div>
-                          <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{ex.name}</p>
-                          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{ex.muscle_group}</p>
+                    {generatedWorkout.exercises.map((ex, i) => {
+                      const exMeta = ex as unknown as Record<string, unknown>;
+                      const calories = exMeta.calories as number | undefined;
+                      const tip = exMeta.tip as string | undefined;
+                      return (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between p-3 rounded-lg"
+                          style={{ backgroundColor: "var(--color-surface-hover)" }}
+                        >
+                          <div>
+                            <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{ex.name}</p>
+                            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                              {ex.muscle_group}{calories ? ` · ${calories} cal` : ""}
+                            </p>
+                            {tip && <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>💡 {tip}</p>}
+                          </div>
+                          <div className="text-right text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                            {ex.sets}×{ex.reps ?? `${ex.duration_min}min`}
+                            {ex.rest_seconds ? ` (${ex.rest_seconds}s rest)` : ""}
+                          </div>
                         </div>
-                        <div className="text-right text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                          {ex.sets}×{ex.reps ?? `${ex.duration_min}min`}
-                          {ex.rest_seconds ? ` (${ex.rest_seconds}s rest)` : ""}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <Button
                     onClick={handleLogFromAI}
@@ -490,6 +517,76 @@ export default function WorkoutsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Daily Calorie Progress Component ────────────────────────
+
+function CalorieProgress({ refreshKey }: { refreshKey: number }) {
+  const { data: profile } = useProfile();
+  const { data: workoutResult } = useWorkouts(100);
+  const target = profile?.daily_calorie_target ?? 0;
+
+  // Calculate today's burned calories
+  const todayBurned = useMemo(() => {
+    const workouts = workoutResult?.data ?? [];
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+    return workouts
+      .filter((w) => {
+        const wDate = w.date.split("T")[0];
+        return wDate === todayStr;
+      })
+      .reduce((sum, w) => sum + (w.calories ?? calculateCalories(w)), 0);
+  }, [workoutResult, refreshKey]);
+
+  if (!target || target <= 0) return null;
+
+  const progress = Math.min(100, Math.round((todayBurned / target) * 100));
+  const remaining = Math.max(0, target - todayBurned);
+
+  return (
+    <div className="bg-[var(--color-surface)] rounded-xl p-5 shadow-sm border border-[var(--color-border)]">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+            <Flame size={16} className="text-orange-500" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
+              Daily Calorie Goal
+            </h3>
+            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+              {todayBurned} / {target} kcal
+            </p>
+          </div>
+        </div>
+        <span className="text-lg font-bold" style={{ color: progress >= 100 ? "#10b981" : "#f59e0b" }}>
+          {progress}%
+        </span>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="h-3 rounded-full" style={{ backgroundColor: "var(--color-surface-hover)" }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${progress}%`,
+            backgroundColor: progress >= 100 ? "#10b981" : progress >= 50 ? "#f59e0b" : "#ef4444",
+          }}
+        />
+      </div>
+
+      <div className="flex justify-between mt-2">
+        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          {todayBurned} burned
+        </span>
+        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          {remaining > 0 ? `${remaining} remaining` : "Goal reached! 🎉"}
+        </span>
+      </div>
     </div>
   );
 }

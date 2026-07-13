@@ -2,13 +2,13 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useUser } from "@/hooks/useAuth";
-import { addFocusSession, updateFocusSession, incrementCompletedCount } from "@/lib/focus";
+import { addFocusSession, updateFocusSession, incrementCompletedCount, getLocalISOString } from "@/lib/focus";
 import { pageHeader, card } from "@/lib/theme";
 import FocusTimer from "@/components/focus/FocusTimer";
 import FocusHistory from "@/components/focus/FocusHistory";
 import CameraMonitor from "@/components/focus/CameraMonitor";
 import { ToastContainer, useToasts } from "@/components/focus/Toast";
-import { playAlertSound, requestNotificationPermission, sendNotification } from "@/lib/alerts";
+import { playAlertSound, playSongAlert, requestNotificationPermission, sendNotification } from "@/lib/alerts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,10 +66,11 @@ export default function FocusPage() {
 
   // Overlay state
   const [newSessionOverlayOpen, setNewSessionOverlayOpen] = useState(false);
+  const [formErrors, setFormErrors] = useState<{ title?: string; focus?: string; brk?: string }>({});
 
   // Refresh history
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
-  const triggerHistoryRefresh = () => setHistoryRefreshKey((k) => k + 1);
+  const triggerHistoryRefresh = useCallback(() => setHistoryRefreshKey((k) => k + 1), []);
 
   // Get phase duration
   const getPhaseDuration = useCallback(
@@ -94,7 +95,7 @@ export default function FocusPage() {
         break_minutes: mode === "stopwatch" ? 0 : breakMinutes,
         completed: false,
         completed_count: 0,
-        started_at: sessionStartRef.current ?? new Date().toISOString(),
+        started_at: sessionStartRef.current ?? getLocalISOString(),
         ended_at: null,
       });
       if (result.data) {
@@ -102,7 +103,7 @@ export default function FocusPage() {
       }
       triggerHistoryRefresh();
     },
-    [user, mode, breakMinutes]
+    [user, mode, breakMinutes, triggerHistoryRefresh]
   );
 
   // Update existing session
@@ -111,17 +112,16 @@ export default function FocusPage() {
       if (!currentSessionIdRef.current) return;
       await updateFocusSession(currentSessionIdRef.current, {
         completed,
-        ended_at: new Date().toISOString(),
+        ended_at: getLocalISOString(),
       });
-      // Increment completed_count on the reused session template
-      if (completed && reusedSessionIdRef.current) {
-        await incrementCompletedCount(reusedSessionIdRef.current);
+      // Clear the reused session template reference once completed
+      if (completed) {
         reusedSessionIdRef.current = null;
       }
       currentSessionIdRef.current = null;
       triggerHistoryRefresh();
     },
-    []
+    [triggerHistoryRefresh]
   );
 
   // Transition phase — handles focus→break→focus cycles (single DB record)
@@ -129,11 +129,28 @@ export default function FocusPage() {
     async (currentPhase: FocusPhase) => {
       if (mode === "pomodoro") {
         if (currentPhase === "focus") {
+          // Focus block done — play alert with song
+          playSongAlert("focus");
+          sendNotification("Focus Complete", "Time for a break!", "focus-complete");
+
+          // Increment completed_count if using recent Session data
+          if (reusedSessionIdRef.current) {
+            await incrementCompletedCount(reusedSessionIdRef.current);
+            await updateFocusSession(reusedSessionIdRef.current, { completed: true });
+            triggerHistoryRefresh();
+          }
+
+          if (currentSessionIdRef.current) {
+            await updateFocusSession(currentSessionIdRef.current, { completed: true });
+            triggerHistoryRefresh();
+          }
+
           const nextCount = sessionCount + 1;
           setSessionCount(nextCount);
           if (nextCount % POMODORO_SESSIONS === 0) {
             // All 4 focus blocks done — session complete
             await updateSession(true);
+            triggerHistoryRefresh();
             const dur = getPhaseDuration("longBreak");
             setPhase("longBreak");
             setTimeRemaining(dur);
@@ -145,17 +162,32 @@ export default function FocusPage() {
             setTotalTime(dur);
           }
         } else {
-          // Break/longBreak done — start next focus block (same DB record)
+          // Break/longBreak done — play alert with song, start next focus block
+          playSongAlert("break");
+          sendNotification("Break Over", "Time to focus!", "break-over");
+
+          // Increment completed_count if using recent Session data
+          if (reusedSessionIdRef.current) {
+            await incrementCompletedCount(reusedSessionIdRef.current);
+            await updateFocusSession(reusedSessionIdRef.current, { completed: true });
+            triggerHistoryRefresh();
+          }
+
+          if (currentSessionIdRef.current) {
+            await updateFocusSession(currentSessionIdRef.current, { completed: true });
+            triggerHistoryRefresh();
+          }
+
           const dur = getPhaseDuration("focus");
           setPhase("focus");
           setTimeRemaining(dur);
           setTotalTime(dur);
-          sessionStartRef.current = new Date().toISOString();
+          sessionStartRef.current = getLocalISOString();
           currentDurationRef.current = dur;
         }
       }
     },
-    [mode, sessionCount, getPhaseDuration, updateSession]
+    [mode, sessionCount, getPhaseDuration, updateSession, triggerHistoryRefresh]
   );
 
   // Timer tick — countdown
@@ -189,13 +221,12 @@ export default function FocusPage() {
     if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
   }, []);
 
-  // Start — creates DB record so completion count can be tracked
-  const handleStart = async () => {
+  // Start — only starts the timer, does NOT store in DB
+  const handleStart = () => {
     if (mode === "stopwatch") {
       if (phase === "idle") {
         setPhase("focus");
-        sessionStartRef.current = new Date().toISOString();
-        await createSession(title || "Stopwatch", 0);
+        sessionStartRef.current = getLocalISOString();
       }
     } else {
       if (phase === "idle") {
@@ -204,9 +235,8 @@ export default function FocusPage() {
         setTimeRemaining(dur);
         setTotalTime(dur);
         setSessionCount(0);
-        sessionStartRef.current = new Date().toISOString();
+        sessionStartRef.current = getLocalISOString();
         currentDurationRef.current = dur;
-        await createSession(title, dur / 60);
       }
     }
     setIsRunning(true);
@@ -219,8 +249,10 @@ export default function FocusPage() {
   const handleReset = async () => {
     setIsRunning(false);
     if (mode === "stopwatch") {
-      // Stopwatch: count if ran for more than 1 minute
-      await updateSession(stopwatchElapsed > 60);
+      // Stopwatch: only save to DB if ran for more than 1 minute
+      if (stopwatchElapsed > 60) {
+        await createSession(title || "Stopwatch", Math.floor(stopwatchElapsed / 60));
+      }
       setStopwatchElapsed(0);
     } else {
       // Pomodoro: count if completed at least one focus block
@@ -266,13 +298,24 @@ export default function FocusPage() {
 
   // Start session from overlay
   const handleStartFromOverlay = async () => {
+    const errors: { title?: string; focus?: string; brk?: string } = {};
+    if (!title.trim()) errors.title = "Title is required";
+    if (focusMinutes < 1 || focusMinutes > 120) errors.focus = "Must be 1–120 min";
+    if (breakMinutes < 1 || breakMinutes > 60) errors.brk = "Must be 1–60 min";
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setFormErrors({});
     setNewSessionOverlayOpen(false);
     const dur = focusMinutes * 60;
     setPhase("focus");
     setTimeRemaining(dur);
     setTotalTime(dur);
     setSessionCount(0);
-    sessionStartRef.current = new Date().toISOString();
+    sessionStartRef.current = getLocalISOString();
     currentDurationRef.current = dur;
     setIsRunning(true);
     await createSession(title, focusMinutes);
@@ -476,8 +519,6 @@ export default function FocusPage() {
             timeRemaining={timeRemaining}
             totalTime={totalTime}
             phase={phase}
-            sessionCount={sessionCount}
-            totalSessions={mode === "pomodoro" ? POMODORO_SESSIONS : 0}
             isStopwatch={mode === "stopwatch"}
             stopwatchElapsed={stopwatchElapsed}
           />
@@ -581,8 +622,9 @@ export default function FocusPage() {
                   type="text"
                   placeholder="e.g. Deep work, Reading, Study..."
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => { setTitle(e.target.value); setFormErrors((p) => ({ ...p, title: undefined })); }}
                 />
+                {formErrors.title && <p className="text-xs text-red-500">{formErrors.title}</p>}
               </div>
 
               <div className="flex gap-4">
@@ -593,9 +635,10 @@ export default function FocusPage() {
                     min={1}
                     max={120}
                     value={focusMinutes}
-                    onChange={(e) => setFocusMinutes(Number(e.target.value) || 1)}
+                    onChange={(e) => { setFocusMinutes(Number(e.target.value) || 1); setFormErrors((p) => ({ ...p, focus: undefined })); }}
                     className="text-center"
                   />
+                  {formErrors.focus && <p className="text-xs text-red-500">{formErrors.focus}</p>}
                 </div>
                 <div className="flex-1 space-y-1">
                   <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Break (min)</Label>
@@ -604,9 +647,10 @@ export default function FocusPage() {
                     min={1}
                     max={60}
                     value={breakMinutes}
-                    onChange={(e) => setBreakMinutes(Number(e.target.value) || 1)}
+                    onChange={(e) => { setBreakMinutes(Number(e.target.value) || 1); setFormErrors((p) => ({ ...p, brk: undefined })); }}
                     className="text-center"
                   />
+                  {formErrors.brk && <p className="text-xs text-red-500">{formErrors.brk}</p>}
                 </div>
               </div>
 
@@ -626,12 +670,21 @@ export default function FocusPage() {
                 </div>
               </div>
 
-              <Button
-                onClick={handleStartFromOverlay}
-                className="w-full bg-[#8b6914] hover:bg-[#a07d1a] text-white"
-              >
-                Start Session
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setNewSessionOverlayOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleStartFromOverlay}
+                  className="flex-1 bg-[#8b6914] hover:bg-[#a07d1a] text-white"
+                >
+                  Start Session
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -6,8 +6,8 @@ interface FocusTimerProps {
   timeRemaining: number;
   totalTime: number;
   phase: FocusPhase;
-  sessionCount: number;
-  totalSessions: number;
+  sessionCount?: number;
+  totalSessions?: number;
   isStopwatch?: boolean;
   stopwatchElapsed?: number;
 }
@@ -40,8 +40,6 @@ export default function FocusTimer({
   timeRemaining,
   totalTime,
   phase,
-  sessionCount,
-  totalSessions,
   isStopwatch = false,
   stopwatchElapsed = 0,
 }: FocusTimerProps) {
@@ -108,25 +106,6 @@ export default function FocusTimer({
           </span>
         </div>
       </div>
-
-      {/* Session counter (pomodoro mode) */}
-      {totalSessions > 1 && (
-        <div className="flex items-center gap-2">
-          {Array.from({ length: totalSessions }).map((_, i) => (
-            <div
-              key={i}
-              className="w-3 h-3 rounded-full transition-colors"
-              style={{
-                backgroundColor:
-                  i < sessionCount ? color : "var(--color-border)",
-              }}
-            />
-          ))}
-          <span className="text-sm ml-2" style={{ color: "var(--color-text-secondary)" }}>
-            Session {sessionCount + 1} of {totalSessions}
-          </span>
-        </div>
-      )}
     </div>
   );
 }

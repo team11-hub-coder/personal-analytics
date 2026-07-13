@@ -39,7 +39,7 @@ export default function ProductivityChart() {
       data={chartData}
       xKey="name"
       yKey="tasks"
-      color={chartColors[1]}
+      colors={["#10b981", "#3b82f6", "#f59e0b"]}
       height={200}
       showLabels
       labelFormatter={(v: number) => v.toString()}

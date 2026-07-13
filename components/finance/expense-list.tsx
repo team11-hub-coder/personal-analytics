@@ -13,7 +13,6 @@ import { useProfile } from "@/hooks/useProfile";
 import { card, button } from "@/lib/theme";
 import { formatCurrency } from "@/lib/currency";
 import { getCategoryIconInfo } from "@/lib/icons";
-import { parseLocalDate, getLocalDateString } from "@/lib/dates";
 import {
   inlineTransactionSchema,
   type InlineTransactionFormData,
@@ -53,16 +52,6 @@ export default function ExpenseList() {
 
   // Min date is year 2000
   const minDate = "2000-01-01";
-
-  // Calculate max date from (3 months before end date)
-  const getMaxFromDate = (endDate: string): string => {
-    if (!endDate) return "";
-    const end = parseLocalDate(endDate);
-    const maxStart = new Date(end);
-    maxStart.setMonth(maxStart.getMonth() - 3);
-    const maxStartStr = getLocalDateString(maxStart);
-    return maxStartStr < minDate ? minDate : maxStartStr;
-  };
 
   // Calculate min date for end date (must be after start date)
   const getMinEndDate = (startDate: string): string => {
@@ -372,8 +361,8 @@ function GroupedTransactions({
   const sortedDates = Object.keys(groupedByDate).sort().reverse();
 
   const formatDateHeader = (dateStr: string) => {
-    const date = parseLocalDate(dateStr);
-    const today = parseLocalDate(getLocalDateString());
+    const date = new Date(dateStr);
+    const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
@@ -619,7 +608,7 @@ function ExpenseItem({
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIconDisplay(transaction.categories?.icon ?? null).color}`}>
           {(() => {
             const IconComp = getCategoryIconDisplay(transaction.categories?.icon ?? null).icon;
-            return <IconComp size={14} />;
+            return <IconComp size={16} />;
           })()}
         </div>
         <div className="flex items-center gap-2">
@@ -638,7 +627,7 @@ function ExpenseItem({
             onClick={() => setIsEditing(true)}
             className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           >
-            <Pencil size={12} />
+            <Pencil size={16} />
           </button>
           <button
             onClick={handleDelete}
@@ -646,9 +635,9 @@ function ExpenseItem({
             className="p-1 text-[var(--color-text-muted)] hover:text-red-500"
           >
             {deleteTransaction.isPending ? (
-              <Loader2 size={12} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <Trash2 size={12} />
+              <Trash2 size={16} />
             )}
           </button>
         </div>

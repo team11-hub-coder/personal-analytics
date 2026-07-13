@@ -1,8 +1,29 @@
 import { createClient } from "@/utils/supabase/client";
-import type { Workout, WorkoutTemplate } from "@/types";
-import { parseLocalDate, getLocalDateString } from "@/lib/dates";
+import type { Workout } from "@/types";
 
 const supabase = createClient();
+
+// ─── Local Timezone Helpers ──────────────────────────────────
+
+/**
+ * Get current time as ISO string in local timezone.
+ * Avoids UTC offset issues (e.g., Myanmar UTC+6.30).
+ */
+export function getLocalISOString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  const ms = String(now.getMilliseconds()).padStart(3, "0");
+  const offset = -now.getTimezoneOffset();
+  const offsetHours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0");
+  const offsetMinutes = String(Math.abs(offset) % 60).padStart(2, "0");
+  const offsetSign = offset >= 0 ? "+" : "-";
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}${offsetSign}${offsetHours}:${offsetMinutes}`;
+}
 
 // ─── Calorie Estimation ──────────────────────────────────────
 
@@ -125,15 +146,15 @@ export async function getWorkoutStats(): Promise<{
   if (error || !data) return { totalWorkouts: 0, totalCalories: 0, totalMinutes: 0, thisWeek: 0 };
 
   const workouts = data as Workout[];
-  const today = parseLocalDate(getLocalDateString());
-  const weekAgo = new Date(today);
+  const now = new Date();
+  const weekAgo = new Date(now);
   weekAgo.setDate(weekAgo.getDate() - 7);
 
   return {
     totalWorkouts: workouts.length,
     totalCalories: workouts.reduce((sum, w) => sum + (w.calories ?? calculateCalories(w)), 0),
     totalMinutes: workouts.reduce((sum, w) => sum + (w.duration_min ?? 0), 0),
-    thisWeek: workouts.filter((w) => parseLocalDate(w.date) >= weekAgo).length,
+    thisWeek: workouts.filter((w) => new Date(w.date) >= weekAgo).length,
   };
 }
 

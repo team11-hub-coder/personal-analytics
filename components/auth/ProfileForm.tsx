@@ -5,6 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { useTransactions } from "@/hooks/useExpenses";
+import { useWorkouts } from "@/hooks/useWorkouts";
+import { useTasks } from "@/hooks/useTasks";
+import { useReminders } from "@/hooks/useReminders";
 import { button, card, pageHeader } from "@/lib/theme";
 import { User, Save, Target, Loader2, Globe, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -288,13 +292,20 @@ export default function ProfileForm() {
 }
 
 function ProgressStats() {
-  // These would come from separate queries in a real app
-  // For now, showing the structure
+  const { data: transactions = [] } = useTransactions();
+  const { data: workoutResult } = useWorkouts(1000);
+  const { data: tasks = [] } = useTasks();
+  const { data: reminders = [] } = useReminders();
+
+  const workouts = workoutResult?.data ?? [];
+  const completedTasks = tasks.filter((t) => t.status === "completed").length;
+  const activeReminders = reminders.filter((r) => r.is_active).length;
+
   const stats = [
-    { label: "Transactions logged", value: "—" },
-    { label: "Workouts completed", value: "—" },
-    { label: "Tasks done", value: "—" },
-    { label: "Active reminders", value: "—" },
+    { label: "Transactions logged", value: transactions.length.toLocaleString() },
+    { label: "Workouts completed", value: workouts.length.toLocaleString() },
+    { label: "Tasks done", value: completedTasks.toLocaleString() },
+    { label: "Active reminders", value: activeReminders.toLocaleString() },
   ];
 
   return (
