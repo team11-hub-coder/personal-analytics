@@ -165,7 +165,8 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-bg);
+    color: var(--color-text);
   }
   html {
     @apply font-sans;

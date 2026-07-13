@@ -229,7 +229,7 @@ function TemplateItem({
       {
         id: template.id,
         amount: data.amount,
-        description: data.description || null,
+        description: data.description || undefined,
         interval: data.interval,
         next_run_date: data.next_run_date,
       },
