@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -86,8 +86,10 @@ export default function ExpenseList() {
   })();
 
   // Filter transactions
-  const filteredTransactions =
-    transactions?.filter((t) => {
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return [];
+
+    return transactions.filter((t) => {
       // Skip filtering if date range has error
       if (dateRangeError) return true;
 
@@ -106,12 +108,21 @@ export default function ExpenseList() {
       if (filterCategory && t.category_id !== filterCategory) return false;
 
       return true;
-    }) || [];
+    });
+  }, [
+    transactions,
+    dateRangeError,
+    filterMonth,
+    showAdvanced,
+    filterDateFrom,
+    filterDateTo,
+    filterCategory,
+  ]);
 
   // Calculate total for filtered transactions
-  const totalFiltered = filteredTransactions.reduce(
-    (sum, t) => sum + Number(t.amount),
-    0
+  const totalFiltered = useMemo(
+    () => filteredTransactions.reduce((sum, t) => sum + Number(t.amount), 0),
+    [filteredTransactions]
   );
 
   const clearFilters = () => {
@@ -508,7 +519,7 @@ function ExpenseItem({
   };
 
   // Get icon from category's icon field in database
-  const getCategoryIconDisplay = (iconName: string | null) => {
+  const getCategoryIconDisplay = (iconName: string | null | undefined) => {
     return getCategoryIconInfo(iconName || "MoreHorizontal");
   };
 
@@ -603,9 +614,9 @@ function ExpenseItem({
   return (
     <div className="flex items-center justify-between p-2 bg-[var(--color-surface-hover)] rounded-lg group">
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIconDisplay(transaction.categories?.icon).color}`}>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIconDisplay(transaction.categories?.icon ?? null).color}`}>
           {(() => {
-            const IconComp = getCategoryIconDisplay(transaction.categories?.icon).icon;
+            const IconComp = getCategoryIconDisplay(transaction.categories?.icon ?? null).icon;
             return <IconComp size={14} />;
           })()}
         </div>

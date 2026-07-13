@@ -97,7 +97,7 @@ types/index.ts                       — Add row interface here
 ```
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-ANTHROPIC_API_KEY=server-side-only-never-commit
+GEMINI_API_KEY=server-side-only-never-commit
 ```
 
 ## Conventions

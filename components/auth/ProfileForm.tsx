@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
-import { useChatMessages } from "@/hooks/useChat";
 import { button, card, pageHeader } from "@/lib/theme";
 import { User, Save, Target, Loader2, Globe, DollarSign } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";

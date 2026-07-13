@@ -35,6 +35,7 @@ export default function ExpenseForm({ onSuccess, onCancel }: ExpenseFormProps) {
       {
         ...data,
         category_id: Number(data.category_id),
+        receipt_image_url: data.receipt_image_url ?? undefined,
       },
       {
         onSuccess: () => {

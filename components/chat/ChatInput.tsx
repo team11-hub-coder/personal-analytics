@@ -1,12 +1,39 @@
 "use client";
 
-import { Send } from "lucide-react";
+/**
+ * ChatInput Component
+ *
+ * Text input field with send button for the chat interface.
+ * Features:
+ * - Enter key to send
+ * - Loading state with spinner
+ * - Disabled state when AI is responding
+ * - Uses shadcn UI components
+ *
+ * @example
+ * <ChatInput
+ *   input={input}
+ *   setInput={setInput}
+ *   onSend={handleSend}
+ *   disabled={isPending}
+ * />
+ */
+
+import { Send, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface ChatInputProps {
+  /** Current input value */
   input: string;
+  /** Callback to update input value */
   setInput: (v: string) => void;
+  /** Callback when send button is clicked or Enter is pressed */
   onSend: () => void;
+  /** Whether the input is disabled */
   disabled?: boolean;
+  /** Whether a message is being sent (shows spinner) */
+  isLoading?: boolean;
 }
 
 export default function ChatInput({
@@ -14,26 +41,45 @@ export default function ChatInput({
   setInput,
   onSend,
   disabled,
+  isLoading,
 }: ChatInputProps) {
+  /**
+   * Handle Enter key press
+   * Only sends if not disabled and not currently loading
+   */
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !disabled && !isLoading) {
+      onSend();
+    }
+  };
+
   return (
     <div className="border-t border-[var(--color-border)] p-3 bg-[var(--color-surface)] flex-shrink-0">
       <div className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !disabled && onSend()}
+          onKeyDown={handleKeyDown}
           placeholder="Ask about your data..."
-          disabled={disabled}
-          className="flex-1 border border-[var(--color-border)] rounded-lg px-3 py-2 text-xs bg-[var(--color-bg)] text-[var(--color-text)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-gradient-from)] focus:border-transparent disabled:opacity-50"
+          disabled={disabled || isLoading}
+          maxLength={10000}
+          className="flex-1 text-xs"
+          aria-label="Chat message input"
         />
-        <button
+        <Button
           onClick={onSend}
-          disabled={!input.trim() || disabled}
-          className="bg-gradient-to-br from-[var(--color-accent-gradient-from)] to-[var(--color-accent-gradient-to)] text-white p-2 rounded-lg opacity-90 hover:opacity-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+          disabled={!input.trim() || disabled || isLoading}
+          size="icon"
+          className="bg-gradient-to-br from-[var(--color-accent-gradient-from)] to-[var(--color-accent-gradient-to)] text-white hover:opacity-90 flex-shrink-0"
+          aria-label="Send message"
         >
-          <Send size={14} />
-        </button>
+          {isLoading ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <Send size={14} />
+          )}
+        </Button>
       </div>
     </div>
   );
