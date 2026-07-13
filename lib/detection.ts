@@ -1,23 +1,5 @@
-import * as tf from "@tensorflow/tfjs";
-
-let objectModel: Awaited<ReturnType<typeof import("@tensorflow-models/coco-ssd").load>> | null = null;
-let modelsLoading = false;
-
-export async function loadModels(): Promise<void> {
-  if (objectModel) return;
-  if (modelsLoading) return;
-  modelsLoading = true;
-
-  try {
-    await tf.ready();
-    const cocoSsd = await import("@tensorflow-models/coco-ssd");
-    objectModel = await cocoSsd.load({ base: "lite_mobilenet_v2" });
-  } catch (err) {
-    console.error("Failed to load detection model:", err);
-  } finally {
-    modelsLoading = false;
-  }
-}
+// Object detection — stub (TensorFlow removed for Vercel build size)
+// Camera-based detection requires TensorFlow which is 270MB+ and exceeds Vercel limits.
 
 export interface DetectionResult {
   faceDetected: boolean;
@@ -25,42 +7,20 @@ export interface DetectionResult {
   faceCount: number;
 }
 
+export async function loadModels(): Promise<void> {
+  console.warn("Object detection unavailable — TensorFlow not installed (Vercel build size limit)");
+}
+
 export async function detectFrame(
-  video: HTMLVideoElement
+  _video: HTMLVideoElement
 ): Promise<DetectionResult> {
-  const result: DetectionResult = {
-    faceDetected: false,
-    phoneDetected: false,
-    faceCount: 0,
-  };
-
-  if (!objectModel) return result;
-
-  try {
-    const objects = await objectModel.detect(video);
-
-    // Count persons (face approximation)
-    const persons = objects.filter(
-      (obj) => obj.class === "person" && obj.score > 0.4
-    );
-    result.faceCount = persons.length;
-    result.faceDetected = persons.length > 0;
-
-    // Detect phone
-    result.phoneDetected = objects.some(
-      (obj) => obj.class === "cell phone" && obj.score > 0.4
-    );
-  } catch {
-    // Detection failed silently
-  }
-
-  return result;
+  return { faceDetected: false, phoneDetected: false, faceCount: 0 };
 }
 
 export function isModelsLoaded(): boolean {
-  return objectModel !== null;
+  return false;
 }
 
 export function isModelsLoading(): boolean {
-  return modelsLoading;
+  return false;
 }

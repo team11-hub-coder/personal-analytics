@@ -51,10 +51,10 @@ export const mockWorkouts: Workout[] = [
 ];
 
 export const mockTasks: Task[] = [
-  { id: 1, user_id: "1", title: "Review PR #42", description: "Code review for dashboard feature", priority: "high", status: "pending", due_date: "2026-07-09", completed_at: null, created_at: "2026-07-08T09:00:00Z" },
-  { id: 2, user_id: "1", title: "Buy groceries", description: "", priority: "medium", status: "completed", due_date: "2026-07-08", completed_at: "2026-07-08T14:00:00Z", created_at: "2026-07-08T08:00:00Z" },
-  { id: 3, user_id: "1", title: "Update resume", description: "", priority: "low", status: "pending", due_date: "2026-07-15", completed_at: null, created_at: "2026-07-07T10:00:00Z" },
-  { id: 4, user_id: "1", title: "Call dentist", description: "Schedule checkup", priority: "medium", status: "pending", due_date: "2026-07-10", completed_at: null, created_at: "2026-07-07T11:00:00Z" },
+  { id: 1, user_id: "1", category_id: null, title: "Review PR #42", description: "Code review for dashboard feature", priority: "high", priority_rank: 1, status: "pending", due_date: "2026-07-09", completed_at: null, created_at: "2026-07-08T09:00:00Z", updated_at: "2026-07-08T09:00:00Z" },
+  { id: 2, user_id: "1", category_id: null, title: "Buy groceries", description: "", priority: "medium", priority_rank: 2, status: "completed", due_date: "2026-07-08", completed_at: "2026-07-08T14:00:00Z", created_at: "2026-07-08T08:00:00Z", updated_at: "2026-07-08T14:00:00Z" },
+  { id: 3, user_id: "1", category_id: null, title: "Update resume", description: "", priority: "low", priority_rank: 3, status: "pending", due_date: "2026-07-15", completed_at: null, created_at: "2026-07-07T10:00:00Z", updated_at: "2026-07-07T10:00:00Z" },
+  { id: 4, user_id: "1", category_id: null, title: "Call dentist", description: "Schedule checkup", priority: "medium", priority_rank: 2, status: "pending", due_date: "2026-07-10", completed_at: null, created_at: "2026-07-07T11:00:00Z", updated_at: "2026-07-07T11:00:00Z" },
 ];
 
 export const mockReminders: Reminder[] = [

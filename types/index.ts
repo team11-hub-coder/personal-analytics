@@ -107,6 +107,7 @@ export interface GeneratedWorkout {
   duration: number;
   exercises: WorkoutExercise[];
 }
+
 export interface Task {
   id: number;
   user_id: string;
