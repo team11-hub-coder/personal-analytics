@@ -11,8 +11,9 @@ export async function loadModels(): Promise<void> {
   console.warn("Object detection unavailable — TensorFlow not installed (Vercel build size limit)");
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function detectFrame(
-  _video: HTMLVideoElement
+  video: HTMLVideoElement
 ): Promise<DetectionResult> {
   return { faceDetected: false, phoneDetected: false, faceCount: 0 };
 }

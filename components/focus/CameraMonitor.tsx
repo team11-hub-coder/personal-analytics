@@ -27,6 +27,7 @@ export default function CameraMonitor({
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [activeAlert, setActiveAlert] = useState<AlertType>(null);
   const [alertDuration, setAlertDuration] = useState(0);
+  const [hasStream, setHasStream] = useState(false);
   const alertStartRef = useRef<number | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -57,6 +58,7 @@ export default function CameraMonitor({
       });
 
       streamRef.current = stream;
+      setHasStream(true);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -79,6 +81,7 @@ export default function CameraMonitor({
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      setHasStream(false);
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -92,6 +95,7 @@ export default function CameraMonitor({
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     startCamera();
 
     return () => {
@@ -229,7 +233,7 @@ export default function CameraMonitor({
       />
 
       {/* Draggable video preview pop-up */}
-      {showPreview && streamRef.current && (
+      {showPreview && hasStream && (
         <div
           className="fixed z-50 rounded-lg overflow-hidden shadow-2xl border-2 border-[#8b6914]"
           style={{

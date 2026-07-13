@@ -10,7 +10,6 @@ import { Plus, Trash2, Lightbulb, Loader2 } from "lucide-react";
 
 interface WorkoutLoggerProps {
   onSave: (exercises: ExerciseEntry[]) => void;
-  aiSuggestions?: { name: string; sets: number; reps: number; weight: number | null }[];
 }
 
 export interface ExerciseEntry {
@@ -51,7 +50,7 @@ const exercisePresets = [
   { name: "Crunches", type: "strength" as const, muscle: "core" },
 ];
 
-export default function WorkoutLogger({ onSave, aiSuggestions }: WorkoutLoggerProps) {
+export default function WorkoutLogger({ onSave }: WorkoutLoggerProps) {
   const [exercises, setExercises] = useState<ExerciseEntry[]>([
     { name: "", type: "strength", sets: 3, reps: 10, weight: null, duration_min: null, distance_km: null, calories: null, notes: "" },
   ]);
@@ -68,7 +67,7 @@ export default function WorkoutLogger({ onSave, aiSuggestions }: WorkoutLoggerPr
         });
       }
     });
-  }, [exercises]);
+  }, [exercises, suggestions]);
 
   const addExercise = () => {
     setExercises((prev) => [
