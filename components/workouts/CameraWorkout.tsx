@@ -65,17 +65,23 @@ export default function CameraWorkout({
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [result, setResult] = useState<PoseResult | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
 
   // Drag state
-  const [previewPos, setPreviewPos] = useState({ x: 20, y: 20 });
+  const [previewPos, setPreviewPos] = useState(() => ({
+    x: typeof window !== "undefined" ? window.innerWidth - 280 : 20,
+    y: 20,
+  }));
   const [dragging, setDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, px: 0, py: 0 });
 
-  // Load model
+  // Load model (deferred to avoid setState in effect)
   useEffect(() => {
-    loadPoseModel().then(() => setModelsLoaded(true));
-    setPreviewPos({ x: window.innerWidth - 280, y: 20 });
+    let cancelled = false;
+    loadPoseModel().then(() => {
+      if (!cancelled) setModelsLoaded(true);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Start camera
@@ -114,10 +120,13 @@ export default function CameraWorkout({
 
   useEffect(() => {
     if (!enabled || !modelsLoaded) { stopCamera(); return; }
-    startCamera();
-    startTimeRef.current = Date.now();
-    setElapsedTime(0);
-    return () => stopCamera();
+    // Defer async camera init and state reset to avoid setState-in-effect
+    const timer = setTimeout(() => {
+      void startCamera();
+      startTimeRef.current = Date.now();
+      setElapsedTime(0);
+    }, 0);
+    return () => { clearTimeout(timer); stopCamera(); };
   }, [enabled, modelsLoaded, startCamera, stopCamera]);
 
   // Reset on mount

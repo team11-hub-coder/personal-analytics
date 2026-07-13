@@ -166,3 +166,35 @@ export interface FocusSession {
 }
 
 export type FocusPhase = "idle" | "focus" | "break" | "longBreak";
+
+export interface DailySummary {
+  id: string;
+  user_id: string;
+  date: string;
+  total_spent: number;
+  transaction_count: number;
+  workout_count: number;
+  total_calories: number;
+  total_duration_min: number;
+  tasks_completed: number;
+  tasks_pending: number;
+  focus_minutes: number;
+  focus_sessions: number;
+  created_at: string;
+}
+
+export interface WeeklySummary {
+  id: string;
+  user_id: string;
+  week_start: string;
+  total_spent: number;
+  transaction_count: number;
+  workout_count: number;
+  total_calories: number;
+  total_duration_min: number;
+  tasks_completed: number;
+  tasks_pending: number;
+  focus_minutes: number;
+  focus_sessions: number;
+  created_at: string;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { getWorkouts, deleteWorkout, calculateCalories } from "@/lib/workouts";
 import type { Workout } from "@/types";
 import { card, sectionHeader } from "@/lib/theme";
@@ -17,8 +17,22 @@ function formatDuration(mins: number | null): string {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 }
 
+/** Convert date string to local YYYY-MM-DD key (avoids UTC timezone shift) */
 function toDateKey(dateStr: string): string {
-  return new Date(dateStr).toISOString().split("T")[0];
+  const d = new Date(dateStr);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** Get today's date as local YYYY-MM-DD */
+function getTodayKey(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 const typeColors: Record<string, string> = {
@@ -35,15 +49,21 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const [tableMissing, setTableMissing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(() => getTodayKey());
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
-    setLoading(true);
+    let cancelled = false;
+    // Only set loading on refetch, not initial mount (already true)
+    if (!isInitialMount.current) setLoading(true);
+    isInitialMount.current = false;
     getWorkouts(50).then((result) => {
+      if (cancelled) return;
       setWorkouts(result.data);
       setTableMissing(result.tableMissing);
       setLoading(false);
     });
+    return () => { cancelled = true; };
   }, [refreshKey]);
 
   // Get unique dates from workouts
@@ -66,7 +86,7 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
   };
 
   const goToToday = () => {
-    setSelectedDate(new Date().toISOString().split("T")[0]);
+    setSelectedDate(getTodayKey());
   };
 
   // Filter workouts by selected date
@@ -96,7 +116,8 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
   };
 
   const formatDisplayDate = (dateStr: string) => {
-    const d = new Date(dateStr + "T00:00:00");
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const d = new Date(year, month - 1, day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diff = Math.floor((today.getTime() - d.getTime()) / 86400000);
@@ -157,7 +178,7 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
           </div>
 
           {/* Today button */}
-          {selectedDate !== new Date().toISOString().split("T")[0] && (
+          {selectedDate !== getTodayKey() && (
             <div className="flex justify-center mt-2">
               <button
                 onClick={goToToday}

@@ -6,11 +6,13 @@ interface UIState {
   theme: "light" | "dark";
   chatButtonPos: { x: number; y: number };
   cameraEnabled: boolean;
+  chatOpen: boolean;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   toggleTheme: () => void;
   setChatButtonPos: (pos: { x: number; y: number }) => void;
   toggleCamera: () => void;
+  setChatOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -20,6 +22,7 @@ export const useUIStore = create<UIState>()(
       theme: "light",
       chatButtonPos: { x: 24, y: 24 },
       cameraEnabled: false,
+      chatOpen: false,
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleTheme: () =>
@@ -31,6 +34,7 @@ export const useUIStore = create<UIState>()(
         set((state) => ({
           cameraEnabled: !state.cameraEnabled,
         })),
+      setChatOpen: (open) => set({ chatOpen: open }),
     }),
     {
       name: "ui-store",
