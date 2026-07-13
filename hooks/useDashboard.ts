@@ -9,6 +9,7 @@ import { useWorkouts } from "./useWorkouts";
 import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { getLocalDateString } from "@/lib/dates";
 import type { DailySummary } from "@/types";
 
 // ─── Finance Hooks ─────────────────────────────────────────────
@@ -18,7 +19,7 @@ export function useDashboardSpentToday() {
   const { data: transactions = [], isLoading } = useTransactions();
 
   const spent = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     return transactions
       .filter((t) => t.date === today)
       .reduce((sum, t) => sum + Number(t.amount), 0);
@@ -65,7 +66,7 @@ export function useDashboardWeeklySpending() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
+      const dateStr = getLocalDateString(d);
       weekDays.push({ day: days[d.getDay()], dateStr, amount: 0 });
     }
 
@@ -161,7 +162,7 @@ export function useDashboardTodayWorkouts() {
 
   const count = useMemo(() => {
     if (!result?.data) return 0;
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     return result.data.filter((w) => w.date.split("T")[0] === today).length;
   }, [result]);
 
@@ -183,7 +184,7 @@ export function useDashboardWeeklyWorkouts() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
+      const dateStr = getLocalDateString(d);
       weekDays.push({ day: days[d.getDay()], dateStr, count: 0 });
     }
 
@@ -213,7 +214,7 @@ export function useDashboardRecentWorkouts(limit = 4) {
 export function useDashboardDailySummary(date?: string) {
   const supabase = createClient();
   const { data: user } = useUser();
-  const targetDate = date || new Date().toISOString().split("T")[0];
+  const targetDate = date || getLocalDateString();
 
   return useQuery({
     queryKey: ["daily-summary", targetDate, user?.id],
@@ -246,7 +247,7 @@ export function useDashboardWeeklySummary() {
         .from("daily_summary")
         .select("*")
         .eq("user_id", user!.id)
-        .gte("date", weekAgo.toISOString().split("T")[0])
+        .gte("date", getLocalDateString(weekAgo))
         .order("date", { ascending: true });
 
       if (error) throw error;

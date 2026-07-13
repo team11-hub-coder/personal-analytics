@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ExpenseForm from "./expense-form";
+import { getLocalDateString } from "@/lib/dates";
 
 export default function ExpenseList() {
   const { data: transactions, isLoading, error } = useTransactions();
@@ -361,19 +362,23 @@ function GroupedTransactions({
   const sortedDates = Object.keys(groupedByDate).sort().reverse();
 
   const formatDateHeader = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
+    const today = getLocalDateString();
+    const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getLocalDateString(yesterday);
 
-    if (date.toDateString() === today.toDateString()) return "Today";
-    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+    if (dateStr === today) return "Today";
+    if (dateStr === yesterdayStr) return "Yesterday";
+
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    const currentYear = new Date().getFullYear();
 
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
-      year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
+      year: year !== currentYear ? "numeric" : undefined,
     });
   };
 
