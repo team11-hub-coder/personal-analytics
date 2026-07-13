@@ -32,9 +32,6 @@ const chatRequestSchema = z.object({
     .max(50), // Limit conversation history
 });
 
-/** Maximum tokens for AI response */
-const MAX_RESPONSE_TOKENS = 2048;
-
 /** Maximum context size in characters (rough estimate: ~4 chars per token) */
 const MAX_CONTEXT_CHARS = 30000;
 
