@@ -28,6 +28,8 @@ export default function CameraMonitor({
   const [activeAlert, setActiveAlert] = useState<AlertType>(null);
   const [alertDuration, setAlertDuration] = useState(0);
   const [hasStream, setHasStream] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const alertStartRef = useRef<number | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
