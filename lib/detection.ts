@@ -134,6 +134,7 @@ export async function loadModels(): Promise<void> {
   modelsReady = true;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function detectFrame(
   video: HTMLVideoElement
 ): Promise<DetectionResult> {

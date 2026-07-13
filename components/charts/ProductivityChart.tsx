@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import ChartBar from "./ChartBar";
 import { chartColors } from "@/lib/theme";
+import { getLocalDateString } from "@/lib/dates";
 
 export default function ProductivityChart() {
   const { data: completedTasks } = useTasks({ status: "completed" });
@@ -16,15 +17,15 @@ export default function ProductivityChart() {
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = getLocalDateString(date);
       const label = date.toLocaleDateString("en-US", { weekday: "short" });
       days.push({ date: dateStr, label, count: 0 });
     }
 
-    // Count tasks completed per day
+    // Count tasks completed per day (convert UTC timestamps to local dates)
     completedTasks.forEach((task) => {
       if (task.completed_at) {
-        const completedDate = task.completed_at.split("T")[0];
+        const completedDate = getLocalDateString(new Date(task.completed_at));
         const day = days.find((d) => d.date === completedDate);
         if (day) day.count++;
       }
