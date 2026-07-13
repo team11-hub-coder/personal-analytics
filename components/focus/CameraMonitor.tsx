@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import { loadModels, detectFrame, type DetectionResult } from "@/lib/detection";
-import { GripVertical, AlertTriangle, Phone, UserX } from "lucide-react";
+import { GripVertical, Phone, UserX } from "lucide-react";
 
 interface CameraMonitorProps {
   enabled: boolean;
@@ -24,8 +24,6 @@ export default function CameraMonitor({
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [streamReady, setStreamReady] = useState(false);
   const [activeAlert, setActiveAlert] = useState<AlertType>(null);
@@ -53,9 +51,6 @@ export default function CameraMonitor({
   // Start camera
   const startCamera = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 320, height: 240 },
         audio: false,
@@ -77,10 +72,7 @@ export default function CameraMonitor({
 
       setStreamReady(true);
     } catch (err) {
-      setError("Camera access denied");
       console.error("Camera error:", err);
-    } finally {
-      setLoading(false);
     }
   }, []);
 

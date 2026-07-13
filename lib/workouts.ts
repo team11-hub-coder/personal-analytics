@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/client";
-import type { Workout, WorkoutTemplate } from "@/types";
+import type { Workout } from "@/types";
 
 const supabase = createClient();
 

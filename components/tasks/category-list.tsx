@@ -12,7 +12,7 @@ import {
   taskCategorySchema,
   type TaskCategoryFormData,
 } from "@/lib/validations";
-import { card, button, list } from "@/lib/theme";
+import { card, button } from "@/lib/theme";
 import { Plus, Trash2, Loader2, Tag, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
