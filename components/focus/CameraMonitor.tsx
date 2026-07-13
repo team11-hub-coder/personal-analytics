@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import { loadModels, detectFrame, type DetectionResult } from "@/lib/detection";
-import { GripVertical, AlertTriangle, Phone, UserX } from "lucide-react";
+import { GripVertical, Phone, UserX } from "lucide-react";
 
 interface CameraMonitorProps {
   enabled: boolean;
@@ -24,8 +24,6 @@ export default function CameraMonitor({
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [activeAlert, setActiveAlert] = useState<AlertType>(null);
   const [alertDuration, setAlertDuration] = useState(0);
@@ -33,15 +31,18 @@ export default function CameraMonitor({
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Draggable preview state — default top-right
-  const [previewPos, setPreviewPos] = useState({ x: 20, y: 20 });
+  const [previewPos, setPreviewPos] = useState(() => {
+    if (typeof window !== "undefined") {
+      return { x: window.innerWidth - 240, y: 20 };
+    }
+    return { x: 20, y: 20 };
+  });
   const [dragging, setDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, px: 0, py: 0 });
 
-  // Load ML models + set default position on mount
+  // Load ML models on mount
   useEffect(() => {
     loadModels().then(() => setModelsLoaded(true));
-    // Default to top-right corner
-    setPreviewPos({ x: window.innerWidth - 240, y: 20 });
   }, []);
 
   // Start camera
@@ -143,7 +144,7 @@ export default function CameraMonitor({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [enabled, modelsLoaded, onDetection, activeAlert]);
+  }, [enabled, modelsLoaded, onDetection, activeAlert, onAlert]);
 
   // Duration counter
   useEffect(() => {

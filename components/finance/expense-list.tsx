@@ -53,15 +53,6 @@ export default function ExpenseList() {
   // Min date is year 2000
   const minDate = "2000-01-01";
 
-  // Calculate max date from (3 months before end date)
-  const getMaxFromDate = (endDate: string): string => {
-    if (!endDate) return "";
-    const end = new Date(endDate);
-    const maxStart = new Date(end);
-    maxStart.setMonth(maxStart.getMonth() - 3);
-    return maxStart < new Date(minDate) ? minDate : maxStart.toISOString().split("T")[0];
-  };
-
   // Calculate min date for end date (must be after start date)
   const getMinEndDate = (startDate: string): string => {
     return startDate || minDate;

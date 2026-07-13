@@ -8,9 +8,8 @@ import {
   drawSkeleton,
   type ExerciseType,
   type PoseResult,
-  type Landmark,
 } from "@/lib/poseDetection";
-import { GripVertical, Repeat, X, Check, Timer, Activity } from "lucide-react";
+import { GripVertical, Repeat, X, Check, Activity } from "lucide-react";
 
 interface CameraWorkoutProps {
   enabled: boolean;

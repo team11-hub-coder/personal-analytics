@@ -8,7 +8,7 @@ import {
   useToggleTaskStatus,
   useTaskCategories,
 } from "@/hooks/useTasks";
-import { card, button, list } from "@/lib/theme";
+import { card, list } from "@/lib/theme";
 import {
   Pencil,
   Trash2,

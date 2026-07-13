@@ -11,9 +11,9 @@ import QuickLogOverlay from "@/components/workouts/QuickLogOverlay";
 import ExerciseCategories from "@/components/workouts/ExerciseCategories";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { GeneratedWorkout, WorkoutExercise } from "@/types";
+import type { GeneratedWorkout } from "@/types";
 import type { ExerciseType } from "@/lib/poseDetection";
-import { Plus, Sparkles, Camera, CameraOff, X, ArrowLeft, Loader2, Dumbbell, Target, Zap, Clock } from "lucide-react";
+import { Plus, Sparkles, Camera, CameraOff, X, ArrowLeft, Loader2, Dumbbell, Clock } from "lucide-react";
 
 const muscleGroupOptions = [
   { id: "chest", label: "Chest", icon: "💪" },
@@ -114,11 +114,9 @@ const workoutTemplates: Record<string, GeneratedWorkout> = {
 export default function WorkoutsPage() {
   const { data: user, isLoading: userLoading } = useUser();
   const { cameraEnabled, toggleCamera } = useUIStore();
-  const [currentExercise, setCurrentExercise] = useState("");
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiStep, setAiStep] = useState<"pick" | "preview">("pick");
-  const [selectedMuscle, setSelectedMuscle] = useState("");
   const [generatedWorkout, setGeneratedWorkout] = useState<GeneratedWorkout | null>(null);
   const [generating, setGenerating] = useState(false);
   const [formCheckOpen, setFormCheckOpen] = useState(false);
@@ -161,12 +159,18 @@ export default function WorkoutsPage() {
 
   // ─── AI Generate ─────────────────────────────────────
   const handleMusclePick = async (muscleId: string) => {
-    setSelectedMuscle(muscleId);
     setGenerating(true);
     setAiStep("preview");
     // Simulate generation delay
     await new Promise((r) => setTimeout(r, 1200));
     setGeneratedWorkout(workoutTemplates[muscleId] ?? workoutTemplates["full-body"]);
+    setGenerating(false);
+  };
+
+  const closeAI = () => {
+    setAiOpen(false);
+    setAiStep("pick");
+    setGeneratedWorkout(null);
     setGenerating(false);
   };
 
@@ -199,14 +203,6 @@ export default function WorkoutsPage() {
     triggerRefresh();
   }, [user, generatedWorkout]);
 
-  const closeAI = () => {
-    setAiOpen(false);
-    setAiStep("pick");
-    setSelectedMuscle("");
-    setGeneratedWorkout(null);
-    setGenerating(false);
-  };
-
   // ─── Form Check ──────────────────────────────────────
   const mapExerciseToType = (name: string): ExerciseType => {
     const lower = name.toLowerCase();
@@ -217,7 +213,6 @@ export default function WorkoutsPage() {
   const handleFormCheckExercise = (exercise: string) => {
     const type = mapExerciseToType(exercise);
     setFormCheckExercise(type);
-    setCurrentExercise(exercise);
     setFormCheckOpen(false);
     if (!cameraEnabled) toggleCamera();
   };
