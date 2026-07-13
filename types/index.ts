@@ -198,3 +198,14 @@ export interface WeeklySummary {
   focus_sessions: number;
   created_at: string;
 }
+
+export interface NotificationPreference {
+  id: string;
+  user_id: string;
+  finance_enabled: boolean;
+  workout_enabled: boolean;
+  tasks_enabled: boolean;
+  reminders_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}

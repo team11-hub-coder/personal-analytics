@@ -134,6 +134,19 @@ export const quickActionColors = {
   reminders: "bg-rose-500",
 } as const;
 
+// ─── Task Colors ──────────────────────────────────────────────
+export const priorityColors: Record<string, string> = {
+  low: "bg-blue-100 text-blue-700",
+  medium: "bg-amber-100 text-amber-700",
+  high: "bg-red-100 text-red-700",
+};
+
+export const taskColors = {
+  overdueBorder: "border-l-4 border-l-red-500",
+  overdueText: "text-red-500",
+  completedCheck: "text-emerald-500",
+};
+
 // ─── Chart Colors ──────────────────────────────────────────────
 export const chartColors = [
   "var(--chart-bar-1)",
