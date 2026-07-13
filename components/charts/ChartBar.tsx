@@ -45,6 +45,8 @@ interface ChartBarProps {
   height?: number;
   /** Empty state message */
   emptyText?: string;
+  /** Custom Y-Axis width to prevent labels from clipping */
+  yAxisWidth?: number;
 }
 
 export default function ChartBar({
@@ -62,6 +64,7 @@ export default function ChartBar({
   labelFormatter,
   height = 200,
   emptyText = "No data yet",
+  yAxisWidth,
 }: ChartBarProps) {
   if (!data || data.length === 0) {
     return (
@@ -74,21 +77,29 @@ export default function ChartBar({
       <BarChart data={data}>
         <XAxis
           dataKey={xKey}
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "var(--chart-axis)" }}
           axisLine={false}
           tickLine={false}
           tickFormatter={yFormatter}
-          width={yFormatter ? 45 : 30}
+          width={yAxisWidth !== undefined ? yAxisWidth : (yFormatter ? 60 : 35)}
         />
         <Tooltip
           formatter={tooltipFormatter}
           labelFormatter={tooltipLabelFormatter}
           cursor={{ fill: "var(--color-surface-hover)" }}
+          contentStyle={{
+            backgroundColor: "var(--chart-tooltip-bg)",
+            color: "var(--chart-tooltip-text)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "8px",
+          }}
+          labelStyle={{ color: "var(--chart-tooltip-text)" }}
+          itemStyle={{ color: "var(--chart-tooltip-text)" }}
         />
         <Bar
           dataKey={yKey}
@@ -112,7 +123,7 @@ export default function ChartBar({
               dataKey={yKey}
               position="top"
               formatter={labelFormatter}
-              style={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+              style={{ fontSize: 11, fill: "var(--color-text-white)" }}
             />
           )}
         </Bar>

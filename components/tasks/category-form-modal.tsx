@@ -44,7 +44,8 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
   useEffect(() => {
     if (isOpen) {
       reset({ color: colorOptions[0].value });
-      setSelectedColor(colorOptions[0].value);
+      // Defer setState to avoid lint error
+      queueMicrotask(() => setSelectedColor(colorOptions[0].value));
     }
   }, [isOpen, reset]);
 

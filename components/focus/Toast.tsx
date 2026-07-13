@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { AlertTriangle, Phone, UserX } from "lucide-react";
 
 export interface Toast {
@@ -10,13 +10,12 @@ export interface Toast {
   icon: typeof AlertTriangle;
 }
 
-let toastId = 0;
-
 export function useToasts() {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
 
   const addToast = useCallback((type: Toast["type"], message: string) => {
-    const id = ++toastId;
+    const id = ++toastIdRef.current;
     const icon = type === "danger" ? Phone : UserX;
     setToasts((prev) => [...prev.slice(-2), { id, type, message, icon }]);
 

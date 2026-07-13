@@ -4,13 +4,14 @@ import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import ChatPanel, { ChatFloatingButton } from "@/components/chat/ChatPanel";
+import { useUIStore } from "@/store/ui";
 
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [chatOpen, setChatOpen] = useState(false);
+  const { chatOpen, setChatOpen } = useUIStore();
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const [usageStats, setUsageStats] = useState<{
     daily: { used: number; limit: number };
@@ -27,22 +28,8 @@ export default function AppLayout({
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
 
-      {/* Desktop chat sidebar (xl+) */}
+      {/* Chat overlay — slides in from right on all screen sizes */}
       {!chatFullscreen && (
-        <div className="hidden xl:block">
-          <ChatPanel
-            open={chatOpen}
-            onClose={() => setChatOpen(false)}
-            desktop
-            onToggleFullscreen={() => setChatFullscreen(true)}
-            usage={usageStats}
-            onUsageUpdate={setUsageStats}
-          />
-        </div>
-      )}
-
-      {/* Mobile/Tablet chat overlay */}
-      <div className="xl:hidden">
         <ChatPanel
           open={chatOpen}
           onClose={() => setChatOpen(false)}
@@ -50,7 +37,7 @@ export default function AppLayout({
           usage={usageStats}
           onUsageUpdate={setUsageStats}
         />
-      </div>
+      )}
 
       {/* Fullscreen chat */}
       {chatFullscreen && (

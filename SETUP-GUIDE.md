@@ -271,6 +271,180 @@ create trigger on_auth_user_created
 
 ---
 
+## Daily Rollup System
+
+### Focus Sessions Table
+
+```sql
+-- Focus sessions: tracks pomodoro and stopwatch sessions
+create table focus_sessions (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  title text not null default '',
+  mode text not null check (mode in ('pomodoro', 'custom', 'stopwatch')),
+  duration_minutes int not null,
+  break_minutes int not null default 5,
+  completed boolean default false,
+  completed_count int default 0,
+  started_at timestamptz not null,
+  ended_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table focus_sessions enable row level security;
+create policy "own rows" on focus_sessions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
+
+### Summary Tables
+
+```sql
+-- Daily summary: one row per user per day
+create table daily_summary (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  date date not null,
+  total_spent numeric(10,2) default 0,
+  transaction_count int default 0,
+  workout_count int default 0,
+  total_calories int default 0,
+  total_duration_min int default 0,
+  tasks_completed int default 0,
+  tasks_pending int default 0,
+  focus_minutes int default 0,
+  focus_sessions int default 0,
+  created_at timestamptz default now(),
+  unique(user_id, date)
+);
+
+-- Weekly summary: one row per user per week
+create table weekly_summary (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  week_start date not null,
+  total_spent numeric(10,2) default 0,
+  transaction_count int default 0,
+  workout_count int default 0,
+  total_calories int default 0,
+  total_duration_min int default 0,
+  tasks_completed int default 0,
+  tasks_pending int default 0,
+  focus_minutes int default 0,
+  focus_sessions int default 0,
+  created_at timestamptz default now(),
+  unique(user_id, week_start)
+);
+
+-- Indexes
+create index idx_daily_summary_user_date on daily_summary(user_id, date desc);
+create index idx_weekly_summary_user_week on weekly_summary(user_id, week_start desc);
+
+-- RLS
+alter table daily_summary enable row level security;
+alter table weekly_summary enable row level security;
+create policy "own rows" on daily_summary for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own rows" on weekly_summary for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
+
+### Aggregation Functions
+
+```sql
+create or replace function aggregate_daily(p_user_id uuid, p_date date)
+returns void as $$
+begin
+  insert into daily_summary (user_id, date, total_spent, transaction_count, workout_count, total_calories, total_duration_min, tasks_completed, tasks_pending, focus_minutes, focus_sessions)
+  select
+    p_user_id,
+    p_date,
+    coalesce(sum(amount), 0),
+    count(*),
+    0, 0, 0, 0, 0, 0, 0
+  from transactions
+  where user_id = p_user_id and date = p_date
+  on conflict (user_id, date) do update set
+    total_spent = excluded.total_spent,
+    transaction_count = excluded.transaction_count;
+
+  update daily_summary set
+    workout_count = coalesce((select count(*) from workouts where user_id = p_user_id and date::date = p_date), 0),
+    total_calories = coalesce((select sum(calories) from workouts where user_id = p_user_id and date::date = p_date), 0),
+    total_duration_min = coalesce((select sum(duration_min) from workouts where user_id = p_user_id and date::date = p_date), 0)
+  where user_id = p_user_id and date = p_date;
+
+  update daily_summary set
+    tasks_completed = coalesce((select count(*) from tasks where user_id = p_user_id and completed_at::date = p_date), 0),
+    tasks_pending = coalesce((select count(*) from tasks where user_id = p_user_id and status = 'pending'), 0)
+  where user_id = p_user_id and date = p_date;
+
+  update daily_summary set
+    focus_minutes = coalesce((select sum(duration_minutes) from focus_sessions where user_id = p_user_id and started_at::date = p_date and completed), 0),
+    focus_sessions = coalesce((select count(*) from focus_sessions where user_id = p_user_id and started_at::date = p_date and completed), 0)
+  where user_id = p_user_id and date = p_date;
+end;
+$$ language plpgsql;
+
+create or replace function aggregate_weekly(p_user_id uuid, p_week_start date)
+returns void as $$
+begin
+  insert into weekly_summary (user_id, week_start, total_spent, transaction_count, workout_count, total_calories, total_duration_min, tasks_completed, tasks_pending, focus_minutes, focus_sessions)
+  select
+    p_user_id,
+    p_week_start,
+    coalesce(sum(total_spent), 0),
+    coalesce(sum(transaction_count), 0),
+    coalesce(sum(workout_count), 0),
+    coalesce(sum(total_calories), 0),
+    coalesce(sum(total_duration_min), 0),
+    coalesce(max(tasks_completed), 0),
+    coalesce(max(tasks_pending), 0),
+    coalesce(sum(focus_minutes), 0),
+    coalesce(sum(focus_sessions), 0)
+  from daily_summary
+  where user_id = p_user_id
+    and date >= p_week_start
+    and date < p_week_start + interval '7 days'
+  on conflict (user_id, week_start) do update set
+    total_spent = excluded.total_spent,
+    transaction_count = excluded.transaction_count,
+    workout_count = excluded.workout_count,
+    total_calories = excluded.total_calories,
+    total_duration_min = excluded.total_duration_min,
+    tasks_completed = excluded.tasks_completed,
+    tasks_pending = excluded.tasks_pending,
+    focus_minutes = excluded.focus_minutes,
+    focus_sessions = excluded.focus_sessions;
+end;
+$$ language plpgsql;
+```
+
+### Cron Setup
+
+First, set the required PostgreSQL settings (run in Supabase SQL Editor):
+
+```sql
+-- Set your Supabase project URL and service role key
+-- Replace values with your actual project credentials from Supabase Dashboard > Settings > API
+ALTER DATABASE postgres SET app.settings.supabase_url = 'https://your-project.supabase.co';
+ALTER DATABASE postgres SET app.settings.service_role_key = 'your-service-role-key';
+```
+
+Then enable extensions and schedule the cron job:
+
+```sql
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+select cron.schedule(
+  'aggregate-daily',
+  '0 0 * * *',
+  $$ select net.http_post(
+    url := current_setting('app.settings.supabase_url') || '/functions/v1/aggregate-daily',
+    headers := '{"Authorization": "Bearer " || current_setting('app.settings.service_role_key')}'
+  ) $$
+);
+```
+
+---
+
 ## Step 6 — Auth (Lead, Day 1–2)
 
 Because Supabase handles auth, this is mostly configuration:

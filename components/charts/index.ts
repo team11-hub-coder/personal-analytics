@@ -10,3 +10,4 @@ export { default as WeeklySpendingChart } from "./WeeklySpendingChart";
 export { default as WeeklyWorkoutChart } from "./WeeklyWorkoutChart";
 export { default as WorkoutProgressChart } from "./WorkoutProgressChart";
 export { default as BudgetProgressChart } from "./BudgetProgressChart";
+export { default as WeeklyFocusChart } from "./WeeklyFocusChart";
