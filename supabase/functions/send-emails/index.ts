@@ -1,18 +1,27 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
+const BREVO_SENDER_EMAIL = Deno.env.get("BREVO_SENDER_EMAIL");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const APP_URL = Deno.env.get("NEXT_PUBLIC_APP_URL") || "http://localhost:3000";
 
-// Simple mustache-style template renderer: replaces {{key}} with values
+// Mustache-style template renderer: supports {{key}} and {{#if key}}...{{/if}}
 function renderTemplate(
   html: string,
   subject: string,
   vars: Record<string, string>
 ): { subject: string; html: string } {
-  let renderedHtml = html;
-  let renderedSubject = subject;
+  function processConditionals(content: string): string {
+    return content.replace(
+      /{{#if (\w+)}}([\s\S]*?){{\/if}}/g,
+      (_, key, block) => (vars[key] ? block : "")
+    );
+  }
+
+  let renderedHtml = processConditionals(html);
+  let renderedSubject = processConditionals(subject);
+
   for (const [key, value] of Object.entries(vars)) {
     const placeholder = `{{${key}}}`;
     renderedHtml = renderedHtml.replaceAll(placeholder, value);
@@ -112,18 +121,18 @@ Deno.serve(async (req) => {
       // Render template
       const rendered = renderTemplate(template.html_body, template.subject, vars);
 
-      // Send email via Resend
-      const emailResponse = await fetch("https://api.resend.com/emails", {
+      // Send email via Brevo
+      const emailResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "api-key": BREVO_API_KEY!,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Personal Analytics <notifications@resend.dev>",
-          to: userData.user.email,
+          sender: { name: "Personal Analytics", email: BREVO_SENDER_EMAIL! },
+          to: [{ email: userData.user.email }],
           subject: rendered.subject,
-          html: rendered.html,
+          htmlContent: rendered.html,
         }),
       });
 
