@@ -144,3 +144,19 @@ export const chartColors = [
   "var(--chart-bar-6)",
   "var(--chart-bar-7)",
 ] as const;
+
+// ─── Task Colors ────────────────────────────────────────────
+export const taskColors = {
+  overdueBorder: "border-l-4 border-red-500",
+  overdueText: "text-red-600",
+  completedCheck: "text-emerald-500",
+  highPriority: "bg-red-100 text-red-700",
+  mediumPriority: "bg-amber-100 text-amber-700",
+  lowPriority: "bg-green-100 text-green-700",
+};
+
+export const priorityColors = {
+  high: "bg-red-100 text-red-700",
+  medium: "bg-amber-100 text-amber-700",
+  low: "bg-green-100 text-green-700",
+};
