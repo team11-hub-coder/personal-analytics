@@ -40,19 +40,12 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
   const [selectedDate, setSelectedDate] = useState<string>(() => getLocalDateString());
 
   useEffect(() => {
-    setLoading(true);
     getWorkouts(50).then((result) => {
       setWorkouts(result.data);
       setTableMissing(result.tableMissing);
       setLoading(false);
     });
   }, [refreshKey]);
-
-  // Get unique dates from workouts
-  const availableDates = useMemo(() => {
-    const dates = new Set(workouts.map((w) => toDateKey(w.date)));
-    return Array.from(dates).sort().reverse();
-  }, [workouts]);
 
   // Navigate dates
   const goToPrevDay = () => {

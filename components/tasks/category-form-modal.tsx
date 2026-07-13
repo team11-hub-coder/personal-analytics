@@ -44,7 +44,6 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
   useEffect(() => {
     if (isOpen) {
       reset({ color: colorOptions[0].value });
-      setSelectedColor(colorOptions[0].value);
     }
   }, [isOpen, reset]);
 
