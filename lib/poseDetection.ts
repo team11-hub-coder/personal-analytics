@@ -37,7 +37,8 @@ export function isPoseModelLoaded(): boolean {
   return false;
 }
 
-export function resetRepCount(_exerciseKey?: string): void {}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function resetRepCount(exerciseKey?: string): void {}
 
 export function drawSkeleton(
   ctx: CanvasRenderingContext2D,
@@ -57,6 +58,7 @@ export function drawSkeleton(
       ctx.stroke();
     }
   }
+
   for (let i = 0; i < landmarks.length; i++) {
     const lm = landmarks[i];
     if (!lm || (lm.visibility ?? 0) > 0.5) {
@@ -68,9 +70,10 @@ export function drawSkeleton(
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function detectExercise(
-  _video: HTMLVideoElement,
-  _exerciseType: ExerciseType
+  video: HTMLVideoElement,
+  exerciseType: ExerciseType
 ): PoseResult | null {
   return null;
 }

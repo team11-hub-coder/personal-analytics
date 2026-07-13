@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
-import type { Task, TaskWithCategory, TaskCategory, TaskView } from "@/types";
+import type { TaskWithCategory, TaskCategory } from "@/types";
 
 // Helper to get authenticated user or throw
 async function getAuthenticatedUser(supabase: ReturnType<typeof createClient>) {

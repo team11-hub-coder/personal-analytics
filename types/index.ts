@@ -71,6 +71,14 @@ export interface Workout {
   created_at: string;
 }
 
+export interface TaskCategory {
+  id: number;
+  user_id: string;
+  name: string;
+  color: string | null;
+  created_at: string;
+}
+
 export interface WorkoutTemplate {
   id: string;
   user_id: string;
@@ -98,14 +106,6 @@ export interface GeneratedWorkout {
   title: string;
   duration: number;
   exercises: WorkoutExercise[];
-}
-
-export interface TaskCategory {
-  id: number;
-  user_id: string;
-  name: string;
-  color: string | null;
-  created_at: string;
 }
 
 export interface Task {
@@ -166,3 +166,37 @@ export interface FocusSession {
 }
 
 export type FocusPhase = "idle" | "focus" | "break" | "longBreak";
+
+export interface NotificationPreference {
+  id: number;
+  user_id: string;
+  finance_enabled: boolean;
+  workout_enabled: boolean;
+  tasks_enabled: boolean;
+  reminders_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailQueue {
+  id: number;
+  user_id: string;
+  email_type: "finance_alert" | "workout_reminder" | "task_reminder" | "reminder_alert";
+  subject: string;
+  body: string;
+  status: "pending" | "processing" | "sent" | "failed";
+  scheduled_for: string;
+  sent_at: string | null;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface EmailTemplate {
+  id: number;
+  template_name: string;
+  subject: string;
+  html_body: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}

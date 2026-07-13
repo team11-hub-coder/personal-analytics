@@ -8,9 +8,8 @@ import {
   drawSkeleton,
   type ExerciseType,
   type PoseResult,
-  type Landmark,
 } from "@/lib/poseDetection";
-import { GripVertical, Repeat, X, Check, Timer, Activity } from "lucide-react";
+import { GripVertical, Repeat, X, Check, Activity } from "lucide-react";
 
 interface CameraWorkoutProps {
   enabled: boolean;
@@ -65,17 +64,21 @@ export default function CameraWorkout({
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [result, setResult] = useState<PoseResult | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
 
   // Drag state
-  const [previewPos, setPreviewPos] = useState({ x: 20, y: 20 });
+  const [previewPos, setPreviewPos] = useState(() => {
+    if (typeof window !== "undefined") {
+      return { x: window.innerWidth - 280, y: 20 };
+    }
+    return { x: 20, y: 20 };
+  });
   const [dragging, setDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, px: 0, py: 0 });
 
   // Load model
   useEffect(() => {
     loadPoseModel().then(() => setModelsLoaded(true));
-    setPreviewPos({ x: window.innerWidth - 280, y: 20 });
   }, []);
 
   // Start camera
@@ -114,9 +117,9 @@ export default function CameraWorkout({
 
   useEffect(() => {
     if (!enabled || !modelsLoaded) { stopCamera(); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     startCamera();
     startTimeRef.current = Date.now();
-    setElapsedTime(0);
     return () => stopCamera();
   }, [enabled, modelsLoaded, startCamera, stopCamera]);
 

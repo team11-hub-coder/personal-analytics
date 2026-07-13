@@ -4,12 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getWorkouts, deleteWorkout, calculateCalories } from "@/lib/workouts";
 import type { Workout } from "@/types";
 import { card, sectionHeader } from "@/lib/theme";
-import { Dumbbell, Flame, Trash2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
+import { Dumbbell, Flame, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 
 function formatDuration(mins: number | null): string {
   if (!mins) return "-";
@@ -38,19 +33,12 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
   const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
-    setLoading(true);
     getWorkouts(50).then((result) => {
       setWorkouts(result.data);
       setTableMissing(result.tableMissing);
       setLoading(false);
     });
   }, [refreshKey]);
-
-  // Get unique dates from workouts
-  const availableDates = useMemo(() => {
-    const dates = new Set(workouts.map((w) => toDateKey(w.date)));
-    return Array.from(dates).sort().reverse();
-  }, [workouts]);
 
   // Navigate dates
   const goToPrevDay = () => {
