@@ -126,6 +126,32 @@ export const quickAction = {
   dot: "w-2 h-2 rounded-full",
 } as const;
 
+// Task priority badge colors
+export const priorityColors: Record<"low" | "medium" | "high", string> = {
+  low: "bg-blue-50 text-blue-600",
+  medium: "bg-amber-50 text-amber-600",
+  high: "bg-rose-50 text-rose-600",
+} as const;
+
+// Task semantic colors (overdue, completed states)
+export const taskColors = {
+  overdueBorder: "border-l-4 border-l-rose-500",
+  completedCheck: "text-emerald-500",
+  overdueText: "text-rose-500 font-medium",
+} as const;
+
+// Category color picker options
+export const categoryColorOptions = [
+  { value: "#22c55e", label: "Green" },
+  { value: "#3b82f6", label: "Blue" },
+  { value: "#f59e0b", label: "Amber" },
+  { value: "#ef4444", label: "Red" },
+  { value: "#8b5cf6", label: "Purple" },
+  { value: "#ec4899", label: "Pink" },
+  { value: "#06b6d4", label: "Cyan" },
+  { value: "#f97316", label: "Orange" },
+] as const;
+
 // ─── Chart Colors ──────────────────────────────────────────────
 export const chartColors = [
   "#8b6914", // gold

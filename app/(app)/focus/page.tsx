@@ -300,6 +300,37 @@ export default function FocusPage() {
     setStopwatchElapsed(0);
   };
 
+  // Escalating alert: 1st=gentle, 2nd=louder, 3rd+=critical + screen flash
+  const triggerEscalatingAlert = useCallback(
+    (reason: string) => {
+      distractionCountRef.current += 1;
+      const count = distractionCountRef.current;
+
+      let soundType: "warning" | "danger" | "critical";
+      let label: string;
+
+      if (count === 1) {
+        soundType = "warning";
+        label = `⚠️ Warning #1: ${reason}`;
+      } else if (count === 2) {
+        soundType = "danger";
+        label = `🔴 Warning #2: ${reason} — focus!`;
+      } else {
+        soundType = "critical";
+        label = `🚨 Critical #${count}: ${reason} — STOP what you're doing!`;
+        // Screen flash for critical
+        setScreenFlash(true);
+        if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+        flashTimeoutRef.current = setTimeout(() => setScreenFlash(false), 1500);
+      }
+
+      playAlertSound(soundType);
+      if (!cameraPreview) addToast(count >= 3 ? "danger" : "warning", label);
+      sendNotification("Serious Focus", label, `focus-alert-${count}`);
+    },
+    [cameraPreview, addToast]
+  );
+
   // Camera detection — Serious Focus mode (escalating alerts)
   const handleDetection = useCallback(
     (result: DetectionResult) => {
@@ -336,38 +367,7 @@ export default function FocusPage() {
         distractionCountRef.current = 0;
       }
     },
-    [isRunning]
-  );
-
-  // Escalating alert: 1st=gentle, 2nd=louder, 3rd+=critical + screen flash
-  const triggerEscalatingAlert = useCallback(
-    (reason: string) => {
-      distractionCountRef.current += 1;
-      const count = distractionCountRef.current;
-
-      let soundType: "warning" | "danger" | "critical";
-      let label: string;
-
-      if (count === 1) {
-        soundType = "warning";
-        label = `⚠️ Warning #1: ${reason}`;
-      } else if (count === 2) {
-        soundType = "danger";
-        label = `🔴 Warning #2: ${reason} — focus!`;
-      } else {
-        soundType = "critical";
-        label = `🚨 Critical #${count}: ${reason} — STOP what you're doing!`;
-        // Screen flash for critical
-        setScreenFlash(true);
-        if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-        flashTimeoutRef.current = setTimeout(() => setScreenFlash(false), 1500);
-      }
-
-      playAlertSound(soundType);
-      if (!cameraPreview) addToast(count >= 3 ? "danger" : "warning", label);
-      sendNotification("Serious Focus", label, `focus-alert-${count}`);
-    },
-    [cameraPreview, addToast]
+    [isRunning, triggerEscalatingAlert]
   );
 
   const handleToggleCamera = async () => {

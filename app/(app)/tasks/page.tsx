@@ -21,23 +21,45 @@ export default function TasksPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--color-text)]">
+          Task Manager
+        </h1>
+        <p className="text-[var(--color-text-secondary)] mt-1">
+          Manage your tasks and stay productive.
+        </p>
+      </div>
+
+      {/* Summary Cards: Total, Pending, Completed, Overdue */}
+      <TaskAnalytics />
+
+      {/* Tab Bar with contextual action button */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">
-            Task Manager
-          </h1>
-          <p className="text-[var(--color-text-secondary)] mt-1">
-            Manage your tasks and stay productive.
-          </p>
-        </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsCategoryModalOpen(true)}
-            className={`flex items-center gap-2 ${button.secondary} px-4 py-2 rounded-lg text-sm`}
+            onClick={() => setActiveSection("tasks")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              activeSection === "tasks"
+                ? "bg-[var(--color-primary)] text-white"
+                : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]"
+            }`}
           >
-            <Tag size={16} />
-            Add Task Category
+            Tasks
           </button>
+          <button
+            onClick={() => setActiveSection("categories")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              activeSection === "categories"
+                ? "bg-[var(--color-primary)] text-white"
+                : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]"
+            }`}
+          >
+            <Tag size={14} />
+            Categories
+          </button>
+        </div>
+
+        {activeSection === "tasks" && (
           <button
             onClick={() => setIsTaskModalOpen(true)}
             className={`flex items-center gap-2 ${button.primary} px-4 py-2 rounded-lg text-sm`}
@@ -45,35 +67,16 @@ export default function TasksPage() {
             <Plus size={16} />
             Add Task
           </button>
-        </div>
-      </div>
-
-      {/* Summary Cards: Total, Pending, Completed, Overdue */}
-      <TaskAnalytics />
-
-      {/* Quick Access Links */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setActiveSection("tasks")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-            activeSection === "tasks"
-              ? "bg-[var(--color-primary)] text-white"
-              : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]"
-          }`}
-        >
-          Tasks
-        </button>
-        <button
-          onClick={() => setActiveSection("categories")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-            activeSection === "categories"
-              ? "bg-[var(--color-primary)] text-white"
-              : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]"
-          }`}
-        >
-          <Tag size={14} />
-          Categories
-        </button>
+        )}
+        {activeSection === "categories" && (
+          <button
+            onClick={() => setIsCategoryModalOpen(true)}
+            className={`flex items-center gap-2 ${button.primary} px-4 py-2 rounded-lg text-sm`}
+          >
+            <Tag size={16} />
+            Add Task Category
+          </button>
+        )}
       </div>
 
       {/* Active Section Content */}
