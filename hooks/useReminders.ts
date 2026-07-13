@@ -35,10 +35,14 @@ export function useAddReminder() {
         data: { user },
       } = await supabase.auth.getUser();
 
+      // Convert local datetime to UTC for storage
+      const localDate = new Date(reminder.remind_at);
+      const utcDate = localDate.toISOString();
+
       const { error } = await supabase.from("reminders").insert({
         user_id: user!.id,
         title: reminder.title,
-        remind_at: reminder.remind_at,
+        remind_at: utcDate,
         repeat: reminder.repeat,
       });
 
@@ -61,11 +65,15 @@ export function useUpdateReminder() {
       remind_at: string;
       repeat: "none" | "daily" | "weekly" | "monthly";
     }) => {
+      // Convert local datetime to UTC for storage
+      const localDate = new Date(reminder.remind_at);
+      const utcDate = localDate.toISOString();
+
       const { error } = await supabase
         .from("reminders")
         .update({
           title: reminder.title,
-          remind_at: reminder.remind_at,
+          remind_at: utcDate,
           repeat: reminder.repeat,
         })
         .eq("id", reminder.id);

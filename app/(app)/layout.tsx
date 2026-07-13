@@ -4,6 +4,7 @@ import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import MobileHeader from "@/components/layout/MobileHeader";
 import ChatPanel, { ChatFloatingButton } from "@/components/chat/ChatPanel";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useUIStore } from "@/store/ui";
 
 export default function AppLayout({
@@ -11,6 +12,7 @@ export default function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
+  usePushNotifications();
   const { chatOpen, setChatOpen } = useUIStore();
   const [chatFullscreen, setChatFullscreen] = useState(false);
   const [usageStats, setUsageStats] = useState<{
