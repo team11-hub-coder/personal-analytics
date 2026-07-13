@@ -202,6 +202,8 @@ export interface WeeklySummary {
 export interface NotificationPreference {
   id: string;
   user_id: string;
+  push_enabled: boolean;
+  email_enabled: boolean;
   finance_enabled: boolean;
   workout_enabled: boolean;
   tasks_enabled: boolean;
