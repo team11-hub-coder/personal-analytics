@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   useTasks,
   useUpdateTask,
@@ -8,7 +8,7 @@ import {
   useToggleTaskStatus,
   useTaskCategories,
 } from "@/hooks/useTasks";
-import { card, button, list } from "@/lib/theme";
+import { card, button, list, priorityColors, taskColors } from "@/lib/theme";
 import {
   Pencil,
   Trash2,
@@ -27,12 +27,6 @@ import { daysFromToday } from "@/lib/dates";
 
 type StatusFilter = "all" | "pending" | "completed" | "overdue";
 type SortBy = "priority" | "due_date" | "created_at";
-
-const priorityColors = {
-  low: "bg-blue-50 text-blue-600",
-  medium: "bg-amber-50 text-amber-600",
-  high: "bg-rose-50 text-rose-600",
-};
 
 const priorityOrder = { high: 0, medium: 1, low: 2 };
 
@@ -53,8 +47,7 @@ export default function TaskList() {
   const deleteTask = useDeleteTask();
   const toggleStatus = useToggleTaskStatus();
 
-  // Sort tasks
-  const sortedTasks = [...(tasks || [])].sort((a, b) => {
+  const sortedTasks = useMemo(() => [...(tasks || [])].sort((a, b) => {
     if (sortBy === "priority") {
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     }
@@ -63,19 +56,18 @@ export default function TaskList() {
       if (!b.due_date) return -1;
       return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     }
-    // created_at (newest first)
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  }), [tasks, sortBy]);
 
-  const handleDelete = (task: TaskWithCategory) => {
+  const handleDelete = useCallback((task: TaskWithCategory) => {
     if (window.confirm(`Delete "${task.title}"?`)) {
       deleteTask.mutate(task.id);
     }
-  };
+  }, [deleteTask]);
 
-  const handleToggleStatus = (task: TaskWithCategory) => {
+  const handleToggleStatus = useCallback((task: TaskWithCategory) => {
     toggleStatus.mutate({ id: task.id, currentStatus: task.status });
-  };
+  }, [toggleStatus]);
 
   const isOverdue = (task: TaskWithCategory) => {
     if (task.status === "completed" || !task.due_date) return false;
@@ -189,7 +181,7 @@ export default function TaskList() {
             <div
               key={task.id}
               className={`${card.compact} flex items-start gap-4 ${
-                isOverdue(task) ? "border-l-4 border-l-rose-500" : ""
+                isOverdue(task) ? taskColors.overdueBorder : ""
               }`}
             >
               {/* Toggle Status */}
@@ -199,7 +191,7 @@ export default function TaskList() {
                 disabled={toggleStatus.isPending}
               >
                 {task.status === "completed" ? (
-                  <Check size={20} className="text-emerald-500" />
+                  <Check size={20} className={taskColors.completedCheck} />
                 ) : (
                   <Circle size={20} className="text-[var(--color-text-muted)] hover:text-emerald-500" />
                 )}
@@ -244,7 +236,7 @@ export default function TaskList() {
                     <span
                       className={`text-xs ${
                         isOverdue(task)
-                          ? "text-rose-500 font-medium"
+                          ? taskColors.overdueText
                           : "text-[var(--color-text-muted)]"
                       }`}
                     >

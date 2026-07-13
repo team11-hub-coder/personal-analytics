@@ -58,6 +58,7 @@ export function drawSkeleton(
       ctx.stroke();
     }
   }
+
   for (let i = 0; i < landmarks.length; i++) {
     const lm = landmarks[i];
     if (!lm || (lm.visibility ?? 0) > 0.5) {

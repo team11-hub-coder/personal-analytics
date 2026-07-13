@@ -6,7 +6,6 @@ import CategoryList from "@/components/finance/category-list";
 import BudgetList from "@/components/finance/budget-list";
 import RecurringTemplateList from "@/components/finance/recurring-template-list";
 import ExpenseList from "@/components/finance/expense-list";
-import { button } from "@/lib/theme";
 import { Tag, Wallet, Repeat } from "lucide-react";
 
 type ActiveSection = "transactions" | "categories" | "budgets" | "recurring";

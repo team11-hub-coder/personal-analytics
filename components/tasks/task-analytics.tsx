@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import { statCard, statColors } from "@/lib/theme";
 import { CheckSquare, Clock, CheckCircle, AlertCircle } from "lucide-react";
@@ -11,10 +12,15 @@ export default function TaskAnalytics() {
   const { data: completedTasks } = useTasks({ status: "completed" });
   const { data: overdueTasks } = useTasks({ status: "overdue" });
 
-  // Calculate completion rate
-  const totalTasks = allTasks?.length || 0;
-  const completedCount = completedTasks?.length || 0;
-  const completionRate = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+  const { totalTasks, completedCount, completionRate } = useMemo(() => {
+    const total = allTasks?.length || 0;
+    const completed = completedTasks?.length || 0;
+    return {
+      totalTasks: total,
+      completedCount: completed,
+      completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+    };
+  }, [allTasks, completedTasks]);
 
   const statCards = [
     {
