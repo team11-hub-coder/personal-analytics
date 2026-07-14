@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Analytics Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-slide: #1a1a2e;
+      --bg-card: #16213e;
+      --text-primary: #ffffff;
+      --text-secondary: #a0aec0;
+      --accent: #e94560;
+      --accent-gradient: linear-gradient(135deg, #e94560, #0f3460);
+      --code-bg: #0d1117;
+      --font-heading: 'Inter', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --heading-weight: 800;
+      --body-weight: 400;
+      --slide-padding: 4rem;
+      --content-gap: 2rem;
+      --section-gap: 3rem;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); overflow: hidden; height: 100vh; width: 100vw; }
+
+    .slide { display: none; flex-direction: column; justify-content: center; padding: var(--slide-padding); height: 100vh; width: 100vw; position: relative; overflow: hidden; }
+    .slide.active { display: flex; }
+    .slide--hero { background: var(--accent-gradient); color: var(--text-primary); text-align: center; align-items: center; }
+    .slide--content { background: var(--bg-slide); }
+    .slide--code { background: var(--code-bg); }
+    .slide--dark { background: var(--bg-primary); }
+
+    .heading-xl { font-family: var(--font-heading); font-size: clamp(2.5rem, 6vw, 5rem); font-weight: var(--heading-weight); line-height: 1.1; letter-spacing: -0.02em; }
+    .heading-lg { font-family: var(--font-heading); font-size: clamp(1.8rem, 4vw, 3rem); font-weight: var(--heading-weight); line-height: 1.2; letter-spacing: -0.01em; }
+    .heading-md { font-family: var(--font-heading); font-size: clamp(1.2rem, 2.5vw, 1.8rem); font-weight: 700; line-height: 1.3; }
+    .body-lg { font-size: clamp(1rem, 1.5vw, 1.25rem); line-height: 1.6; color: var(--text-secondary); }
+    .body-md { font-size: clamp(0.875rem, 1.2vw, 1rem); line-height: 1.6; color: var(--text-secondary); }
+    .accent { color: var(--accent); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--content-gap); align-items: start; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--content-gap); }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--content-gap); }
+
+    .card { background: var(--bg-card); border-radius: 1rem; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 24px rgba(0,0,0,0.12); transition: transform 0.2s, box-shadow 0.2s; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+    .card--accent { border-left: 4px solid var(--accent); }
+    .card h3 { margin-bottom: 0.5rem; }
+    .card p { color: var(--text-secondary); font-size: 0.95rem; }
+
+    .bullet-list { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+    .bullet-list li { position: relative; padding-left: 1.5rem; color: var(--text-secondary); font-size: clamp(0.9rem, 1.2vw, 1.1rem); line-height: 1.5; }
+    .bullet-list li::before { content: ''; position: absolute; left: 0; top: 0.5em; width: 0.5rem; height: 0.5rem; background: var(--accent); border-radius: 50%; }
+
+    pre { background: var(--code-bg); border-radius: 0.75rem; padding: 1.5rem; overflow-x: auto; font-family: var(--font-mono); font-size: clamp(0.75rem, 1vw, 0.9rem); line-height: 1.7; border: 1px solid rgba(255,255,255,0.06); }
+    code { font-family: var(--font-mono); background: rgba(255,255,255,0.06); padding: 0.15em 0.4em; border-radius: 0.25rem; font-size: 0.9em; }
+    pre code { background: none; padding: 0; }
+
+    .callout { background: rgba(255,255,255,0.04); border-left: 4px solid var(--accent); padding: 1.25rem 1.5rem; border-radius: 0 0.5rem 0.5rem 0; font-style: italic; color: var(--text-secondary); }
+
+    .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 2rem; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); z-index: 100; font-size: 0.8rem; color: var(--text-secondary); }
+    .nav-bar button { background: rgba(255,255,255,0.1); border: none; color: var(--text-primary); padding: 0.4rem 1rem; border-radius: 0.375rem; cursor: pointer; font-size: 0.8rem; transition: background 0.2s; }
+    .nav-bar button:hover { background: rgba(255,255,255,0.2); }
+
+    .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); transition: width 0.3s ease; z-index: 100; }
+
+    .emoji-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .stat-number { font-size: 2.5rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: 0.85rem; color: var(--text-secondary); }
+
+    .feature-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(233,69,96,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 0.75rem; }
+
+    [data-animate] { opacity: 0; transform: translateY(20px); }
+    [data-animate].visible { opacity: 1; transform: translateY(0); transition: opacity 0.5s ease, transform 0.5s ease; }
+
+    @media (max-width: 768px) {
+      .slide { padding: 2rem 1.5rem; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress-bar" id="progress"></div>
+
+  <div id="slides">
+    <!-- Slide 1: Title -->
+    <section class="slide slide--hero">
+      <div data-animate>
+        <p class="body-lg" style="margin-bottom: 1rem; opacity: 0.8;">🚀 Built with Next.js 16 + Supabase</p>
+      </div>
+      <div data-animate>
+        <h1 class="heading-xl">Personal Analytics Dashboard</h1>
+      </div>
+      <div data-animate style="margin-top: 1.5rem;">
+        <p class="body-lg">Track finances, workouts, tasks, and focus — all in one place.</p>
+      </div>
+      <div data-animate style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <span class="card" style="padding: 0.75rem 1.5rem;">💰 Finance</span>
+        <span class="card" style="padding: 0.75rem 1.5rem;">🏋️ Workouts</span>
+        <span class="card" style="padding: 0.75rem 1.5rem;">✅ Tasks</span>
+        <span class="card" style="padding: 0.75rem 1.5rem;">⏱️ Focus</span>
+      </div>
+    </section>
+
+    <!-- Slide 2: Tech Stack -->
+    <section class="slide slide--content">
+      <div data-animate>
+        <h2 class="heading-lg">Tech Stack</h2>
+      </div>
+      <div class="grid-3" style="margin-top: var(--section-gap);">
+        <div class="card" data-animate>
+          <div class="feature-icon">⚡</div>
+          <h3 class="heading-md">Next.js 16</h3>
+          <p>App Router, Server Components, API Routes, Turbopack</p>
+        </div>
+        <div class="card" data-animate>
+          <div class="feature-icon">🗄️</div>
+          <h3 class="heading-md">Supabase</h3>
+          <p>PostgreSQL, Auth, Realtime, Row Level Security</p>
+        </div>
+        <div class="card" data-animate>
+          <div class="feature-icon">🎨</div>
+          <h3 class="heading-md">Tailwind v4</h3>
+          <p>CSS-only config, shadcn/ui, Recharts</p>
+        </div>
+        <div class="card" data-animate>
+          <div class="feature-icon">🤖</div>
+          <h3 class="heading-md">AI Powered</h3>
+          <p>Gemini Flash, workout generation, spending insights</p>
+        </div>
+        <div class="card" data-animate>
+          <div class="feature-icon">📱</div>
+          <h3 class="heading-md">Responsive</h3>
+          <p>Mobile-first, dark mode, offline-ready</p>
+        </div>
+        <div class="card" data-animate>
+          <div class="feature-icon">🔒</div>
+          <h3 class="heading-md">Secure</h3>
+          <p>RLS policies, JWT auth, environment variables</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 3: Features Overview -->
+    <section class="slide slide--content">
+      <div data-animate>
+        <h2 class="heading-lg">Core Features</h2>
+      </div>
+      <div class="grid-2" style="margin-top: var(--section-gap);">
+        <div data-animate>
+          <ul class="bullet-list">
+            <li><strong>Finance Tracking</strong> — Log transactions, set budgets, view spending analytics</li>
+            <li><strong>Workout Logger</strong> — Track exercises, calories, AI workout generation</li>
+            <li><strong>Task Manager</strong> — Kanban board, priorities, due dates, categories</li>
+            <li><strong>Focus Timer</strong> — Pomodoro, camera monitoring, session tracking</li>
+          </ul>
+        </div>
+        <div data-animate>
+          <ul class="bullet-list">
+            <li><strong>Reminders</strong> — Real-time notifications, recurring schedules</li>
+            <li><strong>AI Chatbot</strong> — Ask questions about your data, daily resets</li>
+            <li><strong>Export</strong> — CSV/JSON download with date filters</li>
+            <li><strong>Telegram Bot</strong> — Log workouts via Telegram messages</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 4: Dashboard -->
+    <section class="slide slide--content">
+      <div data-animate>
+        <h2 class="heading-lg">Dashboard</h2>
+      </div>
+      <div class="grid-2" style="margin-top: var(--section-gap);">
+        <div data-animate>
+          <div class="callout">
+            "At-a-glance view of your daily, weekly, and monthly progress across all modules."
+          </div>
+          <ul class="bullet-list" style="margin-top: 1.5rem;">
+            <li>5 stat cards with real-time data</li>
+            <li>Spending category pie chart</li>
+            <li>Weekly spending trend bar chart</li>
+            <li>Workout frequency visualization</li>
+            <li>Budget progress tracking</li>
+          </ul>
+        </div>
+        <div data-animate style="display: flex; flex-direction: column; gap: 1rem;">
+          <div class="grid-2" style="gap: 0.75rem;">
+            <div class="card" style="text-align: center; padding: 1rem;">
+              <div class="stat-number">$1,250</div>
+              <div class="stat-label">Spent Today</div>
+            </div>
+            <div class="card" style="text-align: center; padding: 1rem;">
+              <div class="stat-number" style="color: #10b981;">3</div>
+              <div class="stat-label">Workouts</div>
+            </div>
+          </div>
+          <div class="grid-2" style="gap: 0.75rem;">
+            <div class="card" style="text-align: center; padding: 1rem;">
+              <div class="stat-number" style="color: #f59e0b;">5</div>
+              <div class="stat-label">Pending Tasks</div>
+            </div>
+            <div class="card" style="text-align: center; padding: 1rem;">
+              <div class="stat-number" style="color: #3b82f6;">2h 30m</div>
+              <div class="stat-label">Focus Time</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 5: AI Features -->
+    <section class="slide slide--content">
+      <div data-animate>
+        <h2 class="heading-lg">AI-Powered Features</h2>
+      </div>
+      <div class="grid-3" style="margin-top: var(--section-gap);">
+        <div class="card card--accent" data-animate>
+          <div class="emoji-icon">🏋️</div>
+          <h3 class="heading-md">Workout Generator</h3>
+          <p>AI creates personalized workout plans based on muscle group, duration, and equipment</p>
+        </div>
+        <div class="card card--accent" data-animate>
+          <div class="emoji-icon">💰</div>
+          <h3 class="heading-md">Spending Insights</h3>
+          <p>Analyzes 30-day trends, budget status, top categories, and monthly projections</p>
+        </div>
+        <div class="card card--accent" data-animate>
+          <div class="emoji-icon">📊</div>
+          <h3 class="heading-md">Daily Summary</h3>
+          <p>AI generates narrative summary of your day with highlights and suggestions</p>
+        </div>
+      </div>
+      <div data-animate style="margin-top: 2rem;">
+        <div class="callout">
+          💡 Powered by Gemini Flash — fast, accurate, and context-aware responses about YOUR data.
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 6: Architecture -->
+    <section class="slide slide--code">
+      <div data-animate>
+        <h2 class="heading-lg">Architecture</h2>
+      </div>
+      <div class="grid-2" style="margin-top: var(--section-gap);">
+        <div data-animate>
+          <pre><code>// App Router Structure
+app/
+├── (app)/           # Authenticated
+│   ├── dashboard/
+│   ├── finance/
+│   ├── workouts/
+│   ├── focus/
+│   ├── tasks/
+│   ├── reminders/
+│   └── export/
+├── (auth)/          # Public
+│   ├── login/
+│   └── register/
+└── api/
+    ├── chat/        # AI chatbot
+    ├── ai/          # AI features
+    └── telegram/    # Bot webhook</code></pre>
+        </div>
+        <div data-animate>
+          <pre><code>// Custom Hooks Pattern
+hooks/
+├── useExpenses.ts   # TanStack Query
+├── useWorkouts.ts   # + Supabase
+├── useTasks.ts      # + RLS
+├── useFocus.ts      # = Data Layer
+├── useChat.ts       #
+└── useAI.ts         #
+
+// Component Pattern
+components/
+├── ui/              # shadcn
+├── charts/          # Recharts
+├── finance/         # Domain
+├── workouts/        # Components
+└── focus/           #</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 7: Database Schema -->
+    <section class="slide slide--content">
+      <div data-animate>
+        <h2 class="heading-lg">Database Schema</h2>
+      </div>
+      <div data-animate style="margin-top: var(--section-gap); overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Table</th>
+              <th>Purpose</th>
+              <th>Key Fields</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>profiles</code></td><td>User settings & targets</td><td>daily_calorie_target, monthly_budget_goal</td></tr>
+            <tr><td><code>transactions</code></td><td>Finance tracking</td><td>amount, category_id, date, type</td></tr>
+            <tr><td><code>budgets</code></td><td>Spending limits</td><td>monthly_limit, category_id</td></tr>
+            <tr><td><code>workouts</code></td><td>Exercise logging</td><td>exercise_type, sets, reps, calories</td></tr>
+            <tr><td><code>tasks</code></td><td>Task management</td><td>priority, status, due_date</td></tr>
+            <tr><td><code>reminders</code></td><td>Scheduling</td><td>remind_at, repeat, is_active</td></tr>
+            <tr><td><code>chat_messages</code></td><td>AI chat history</td><td>role, content, created_at</td></tr>
+            <tr><td><code>telegram_users</code></td><td>Bot linking</td><td>telegram_user_id, supabase_user_id</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Slide 8: Security -->
+    <section class="slide slide--content">
+      <div data-animate>
+        <h2 class="heading-lg">Security & Auth</h2>
+      </div>
+      <div class="grid-2" style="margin-top: var(--section-gap);">
+        <div data-animate>
+          <h3 class="heading-md" style="margin-bottom: 1rem;">Row Level Security</h3>
+          <ul class="bullet-list">
+            <li>Users can only read/write their own data</li>
+            <li>RLS policies on every table</li>
+            <li>API routes verify authentication</li>
+            <li>No service role key exposure</li>
+          </ul>
+        </div>
+        <div data-animate>
+          <h3 class="heading-md" style="margin-bottom: 1rem;">Best Practices</h3>
+          <ul class="bullet-list">
+            <li>Server-side validation with Zod</li>
+            <li>Rate limiting on AI endpoints</li>
+            <li>Environment variables for secrets</li>
+            <li>Middleware for auth redirects</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 9: Team & Workflow -->
+    <section class="slide slide--content">
+      <div data-animate>
+        <h2 class="heading-lg">Team Workflow</h2>
+      </div>
+      <div class="grid-2" style="margin-top: var(--section-gap);">
+        <div data-animate>
+          <div class="callout">
+            "5-person team working on feature branches with PR reviews before merge."
+          </div>
+          <ul class="bullet-list" style="margin-top: 1.5rem;">
+            <li><strong>Git Flow</strong> — feature/* branches → PR → main</li>
+            <li><strong>CI/CD</strong> — GitHub Actions + Vercel preview</li>
+            <li><strong>Code Review</strong> — PR required before merge</li>
+            <li><strong>Schema Changes</strong> — Through lead only</li>
+          </ul>
+        </div>
+        <div data-animate style="display: flex; flex-direction: column; gap: 1rem;">
+          <div class="card" style="text-align: center;">
+            <div class="stat-number">46</div>
+            <div class="stat-label">Pull Requests</div>
+          </div>
+          <div class="card" style="text-align: center;">
+            <div class="stat-number" style="color: #10b981;">7</div>
+            <div class="stat-label">Database Tables</div>
+          </div>
+          <div class="card" style="text-align: center;">
+            <div class="stat-number" style="color: #f59e0b;">8</div>
+            <div class="stat-label">Modules</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 10: Closing -->
+    <section class="slide slide--hero">
+      <div data-animate>
+        <h1 class="heading-xl">Thank You!</h1>
+      </div>
+      <div data-animate style="margin-top: 1.5rem;">
+        <p class="body-lg">Personal Analytics Dashboard</p>
+      </div>
+      <div data-animate style="margin-top: 2rem; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
+        <span class="card" style="padding: 0.75rem 1.5rem;">🌐 Live Demo</span>
+        <span class="card" style="padding: 0.75rem 1.5rem;">📂 GitHub Repo</span>
+        <span class="card" style="padding: 0.75rem 1.5rem;">📖 Documentation</span>
+      </div>
+      <div data-animate style="margin-top: 2rem;">
+        <p class="body-md" style="opacity: 0.7;">Built with ❤️ by Team 11</p>
+      </div>
+    </section>
+  </div>
+
+  <nav class="nav-bar">
+    <button onclick="prevSlide()" aria-label="Previous slide">← Prev</button>
+    <span id="counter">1 / 10</span>
+    <button onclick="nextSlide()" aria-label="Next slide">Next →</button>
+  </nav>
+
+  <script>
+    let current = 0;
+    const slides = document.querySelectorAll('.slide');
+    const total = slides.length;
+    const counter = document.getElementById('counter');
+    const progress = document.getElementById('progress');
+
+    function showSlide(n) {
+      slides[current].classList.remove('active');
+      current = (n + total) % total;
+      slides[current].classList.add('active');
+      counter.textContent = `${current + 1} / ${total}`;
+      progress.style.width = `${((current + 1) / total) * 100}%`;
+      animateSlide(slides[current]);
+    }
+
+    function nextSlide() { showSlide(current + 1); }
+    function prevSlide() { showSlide(current - 1); }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+      else if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+      else if (e.key === 'End') { e.preventDefault(); showSlide(total - 1); }
+      else if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+      else if (e.key === 'Escape' && document.fullscreenElement) { document.exitFullscreen(); }
+    });
+
+    let touchStartX = 0;
+    document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+    document.addEventListener('touchend', (e) => {
+      const diff = touchStartX - e.changedTouches[0].screenX;
+      if (Math.abs(diff) > 50) { diff > 0 ? nextSlide() : prevSlide(); }
+    });
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
+      else { document.exitFullscreen(); }
+    }
+
+    function animateSlide(slide) {
+      const animElements = slide.querySelectorAll('[data-animate]');
+      animElements.forEach((el, i) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        }, 100 + i * 100);
+      });
+    }
+
+    showSlide(0);
+  </script>
+</body>
+</html>

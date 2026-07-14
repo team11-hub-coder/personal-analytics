@@ -79,7 +79,7 @@ export default function BudgetForm({
           </label>
           <input
             type="number"
-            step="1"
+            step="0.01"
             min="0"
             {...register("monthly_limit", { valueAsNumber: true })}
             placeholder="0"

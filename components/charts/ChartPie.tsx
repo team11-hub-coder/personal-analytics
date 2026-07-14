@@ -61,12 +61,12 @@ export default function ChartPie({
     );
   }
 
-  const defaultTooltip = (v: unknown) => `$${Number(v).toFixed(2)}`;
+  const defaultTooltip = (v: unknown) => `$${Number(v).toLocaleString("en-US")}`;
   const fmt = tooltipFormatter ?? defaultTooltip;
 
   const legendFmt =
     legendFormatter ??
-    ((item: { name: string; value: number }) => `$${item.value.toFixed(2)}`);
+    ((item: { name: string; value: number }) => `$${item.value.toLocaleString("en-US")}`);
 
   const safeColors = colors.length > 0 ? colors : chartColors;
 

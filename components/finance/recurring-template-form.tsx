@@ -63,7 +63,7 @@ export default function RecurringTemplateForm({
           </label>
           <input
             type="number"
-            step="1"
+            step="0.01"
             min="0"
             {...register("amount", { valueAsNumber: true })}
             placeholder="0"

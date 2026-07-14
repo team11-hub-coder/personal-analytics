@@ -32,6 +32,93 @@ const chatRequestSchema = z.object({
     .max(50), // Limit conversation history
 });
 
+/**
+ * Get the UTC offset in milliseconds for a given IANA timezone at the current moment.
+ * Works correctly regardless of the server's timezone.
+ */
+function getUTCOffsetMs(timezone: string, date: Date): number {
+  const fmtOpts: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false,
+  };
+
+  const utcParts = new Intl.DateTimeFormat("en-US", { ...fmtOpts, timeZone: "UTC" }).formatToParts(date);
+  const tzParts = new Intl.DateTimeFormat("en-US", { ...fmtOpts, timeZone: timezone }).formatToParts(date);
+
+  const val = (parts: Intl.DateTimeFormatPart[], type: string) =>
+    parseInt(parts.find((p) => p.type === type)?.value ?? "0");
+
+  const utcNum = Date.UTC(val(utcParts, "year"), val(utcParts, "month") - 1, val(utcParts, "day"),
+    val(utcParts, "hour"), val(utcParts, "minute"), val(utcParts, "second"));
+  const tzNum = Date.UTC(val(tzParts, "year"), val(tzParts, "month") - 1, val(tzParts, "day"),
+    val(tzParts, "hour"), val(tzParts, "minute"), val(tzParts, "second"));
+
+  return tzNum - utcNum;
+}
+
+/**
+ * Get the current date/time parts in a specific IANA timezone.
+ * Returns date strings for display AND UTC-equivalent ISO strings for database queries.
+ */
+function getLocalNow(timezone: string) {
+  const now = new Date();
+
+  // Extract date/time components in the target timezone
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+
+  const get = (type: string) => parseInt(parts.find((p) => p.type === type)?.value ?? "0");
+  const year = get("year");
+  const month = get("month");
+  const day = get("day");
+  const hour = get("hour");
+  const minute = get("minute");
+  const second = get("second");
+
+  const dateStr = `${String(year).padStart(2, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const hourStr = `${dateStr}T${String(hour).padStart(2, "0")}`;
+
+  // Compute UTC offset (handles DST correctly)
+  const offsetMs = getUTCOffsetMs(timezone, now);
+
+  // Convert local midnight and local start-of-hour to UTC for DB queries
+  const startOfDayUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0) - offsetMs);
+  const startOfHourUTC = new Date(Date.UTC(year, month - 1, day, hour, 0, 0) - offsetMs);
+
+  // Human-readable datetime for the AI
+  const datetimeStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    weekday: "long",
+  }).format(now);
+
+  return {
+    dateStr,
+    hourStr,
+    datetimeStr,
+    startOfDayUTC: startOfDayUTC.toISOString(),
+    startOfHourUTC: startOfHourUTC.toISOString(),
+  };
+}
+
 /** Maximum context size in characters (rough estimate: ~4 chars per token) */
 const MAX_CONTEXT_CHARS = 30000;
 
@@ -82,8 +169,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fetch user's timezone from profile
+    let userTimezone = "UTC";
+    try {
+      const { data: tzProfile } = await supabase
+        .from("profiles")
+        .select("timezone")
+        .eq("id", user.id)
+        .single();
+      if (tzProfile?.timezone) {
+        userTimezone = tzProfile.timezone;
+      }
+    } catch {
+      // Fallback to UTC
+    }
+
     // Check rate limits
-    const rateLimitResult = await checkRateLimit(user.id, supabase);
+    const rateLimitResult = await checkRateLimit(user.id, supabase, userTimezone);
     if (!rateLimitResult.allowed) {
       return Response.json(
         {
@@ -97,14 +199,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const localNow = getLocalNow(userTimezone);
+
     // Build context from user's Supabase data (truncated if too large)
-    const rawContext = await buildUserContext(user.id, supabase);
+    const rawContext = await buildUserContext(user.id, supabase, userTimezone);
     const context = truncateContext(rawContext);
 
     // Initialize Gemini model with system instructions
     const model = genAI.getGenerativeModel({
       model: "gemini-3-flash-preview",
       systemInstruction: `You are a personal analytics assistant. You analyze and answer questions ONLY about the user's data shown below. Be concise, insightful, and helpful.
+
+CURRENT DATE & TIME:
+- Timezone: ${userTimezone}
+- Current date/time: ${localNow.datetimeStr}
+- Use this as "today" and "now" when answering date-related questions (e.g., "today's spending", "upcoming reminders", "this week's workouts").
 
 CAPABILITIES:
 - Analyze spending patterns and budget status
@@ -119,6 +228,7 @@ STRICT RULES:
 4. Always reference the user's actual data when answering
 5. When asked for insights, analyze patterns in their data
 6. For summaries, calculate totals and provide actionable insights
+7. When referencing dates, use the user's local timezone (shown above) — not UTC
 
 User's Data:
 ${context}`,
@@ -143,7 +253,7 @@ ${context}`,
     await recordUsage(user.id, lastMessage.content, assistantMessage, supabase);
 
     // Get updated usage stats
-    const updatedUsage = await getUsageStats(user.id, supabase);
+    const updatedUsage = await getUsageStats(user.id, supabase, userTimezone);
 
     return Response.json({
       message: assistantMessage,
@@ -170,7 +280,8 @@ ${context}`,
  */
 async function buildUserContext(
   userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  timezone: string
 ): Promise<string> {
   const sections: string[] = [];
 
@@ -405,23 +516,22 @@ function truncateHistory(
  */
 async function checkRateLimit(
   userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  timezone: string
 ): Promise<{
   allowed: boolean;
   error?: string;
   dailyUsed: number;
   hourlyUsed: number;
 }> {
-  const now = new Date();
-  const today = now.toISOString().split("T")[0]; // YYYY-MM-DD
-  const currentHour = now.toISOString().slice(0, 13); // YYYY-MM-DDTHH
+  const { startOfDayUTC, startOfHourUTC } = getLocalNow(timezone);
 
   // Check daily limit
   const { count: dailyUsed } = await supabase
     .from("chat_usage")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .gte("created_at", `${today}T00:00:00Z`);
+    .gte("created_at", startOfDayUTC);
 
   if ((dailyUsed || 0) >= DAILY_MESSAGE_LIMIT) {
     return {
@@ -437,7 +547,7 @@ async function checkRateLimit(
     .from("chat_usage")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .gte("created_at", `${currentHour}:00:00Z`);
+    .gte("created_at", startOfHourUTC);
 
   if ((hourlyUsed || 0) >= HOURLY_MESSAGE_LIMIT) {
     return {
@@ -498,26 +608,25 @@ async function recordUsage(
  */
 async function getUsageStats(
   userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  timezone: string
 ): Promise<{
   daily: { used: number; limit: number };
   hourly: { used: number; limit: number };
 }> {
-  const now = new Date();
-  const today = now.toISOString().split("T")[0];
-  const currentHour = now.toISOString().slice(0, 13);
+  const { startOfDayUTC, startOfHourUTC } = getLocalNow(timezone);
 
   const { count: dailyUsed, error: dailyError } = await supabase
     .from("chat_usage")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .gte("created_at", `${today}T00:00:00Z`);
+    .gte("created_at", startOfDayUTC);
 
   const { count: hourlyUsed, error: hourlyError } = await supabase
     .from("chat_usage")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .gte("created_at", `${currentHour}:00:00Z`);
+    .gte("created_at", startOfHourUTC);
 
   if (dailyError) console.error("Daily usage query error:", dailyError.message);
   if (hourlyError) console.error("Hourly usage query error:", hourlyError.message);

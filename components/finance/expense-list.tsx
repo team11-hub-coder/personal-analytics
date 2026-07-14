@@ -562,7 +562,7 @@ function ExpenseItem({
             <div>
               <input
                 type="number"
-                step="1"
+                step="0.01"
                 {...register("amount", { valueAsNumber: true })}
                 className="border border-[var(--color-border)] rounded px-2 py-1 text-sm"
               />

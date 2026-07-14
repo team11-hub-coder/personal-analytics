@@ -33,6 +33,7 @@ export default function ProfileForm() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -40,23 +41,26 @@ export default function ProfileForm() {
 
   useEffect(() => {
     if (profile) {
-      // Detect timezone from browser
+      // Auto-detect only if profile has never been set (empty/null values)
+      const needsDetectTimezone = !profile.timezone;
+      const needsDetectCurrency = !profile.currency;
+
       const browserTimezone = detectTimezone();
       const browserCurrency = getCurrencyFromTimezone(browserTimezone);
-
-      // Use detected values if profile still has default values
-      const isDefaultTimezone = !profile.timezone || profile.timezone === "Asia/Yangon";
-      const isDefaultCurrency = !profile.currency || profile.currency === "MMK";
 
       reset({
         display_name: profile.display_name,
         daily_calorie_target: profile.daily_calorie_target,
         monthly_budget_goal: profile.monthly_budget_goal,
-        currency: isDefaultCurrency ? browserCurrency : profile.currency,
-        timezone: isDefaultTimezone ? browserTimezone : profile.timezone,
+        currency: needsDetectCurrency ? browserCurrency : profile.currency,
+        timezone: needsDetectTimezone ? browserTimezone : profile.timezone,
       });
+
+      // Mark dirty if auto-detected values differ from stored
+      if (needsDetectCurrency) setValue("currency", browserCurrency, { shouldDirty: true });
+      if (needsDetectTimezone) setValue("timezone", browserTimezone, { shouldDirty: true });
     }
-  }, [profile, reset]);
+  }, [profile, reset, setValue]);
 
   const onSubmit = (data: ProfileFormData) => {
     updateProfile.mutate(data, {
@@ -120,7 +124,7 @@ export default function ProfileForm() {
               />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--color-text)]">
+              <h2 className="text-base font-semibold text-[var(--color-text)]">
                 {profile?.display_name || "User"}
               </h2>
               <p className="text-sm text-[var(--color-text-secondary)]">
@@ -319,7 +323,7 @@ function ProgressStats() {
             key={stat.label}
             className="p-4 bg-[var(--color-surface-hover)] rounded-lg text-center"
           >
-            <p className="text-2xl font-bold text-[var(--color-text)]">
+            <p className="text-xl font-bold text-[var(--color-text)]">
               {stat.value}
             </p>
             <p className="text-xs text-[var(--color-text-secondary)]">

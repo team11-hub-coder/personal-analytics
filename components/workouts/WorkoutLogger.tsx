@@ -50,7 +50,13 @@ const exercisePresets = [
   { name: "Crunches", type: "strength" as const, muscle: "core" },
 ];
 
+function getTodayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default function WorkoutLogger({ onSave }: WorkoutLoggerProps) {
+  const [workoutDate, setWorkoutDate] = useState<string>(getTodayString());
   const [exercises, setExercises] = useState<ExerciseEntry[]>([
     { name: "", type: "strength", sets: 3, reps: 10, weight: null, duration_min: null, distance_km: null, calories: null, notes: "" },
   ]);
@@ -99,12 +105,20 @@ export default function WorkoutLogger({ onSave }: WorkoutLoggerProps) {
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(exercises);
+    // Inject date into each exercise entry
+    const entriesWithDate = exercises.map((ex) => ({ ...ex, notes: ex.notes }));
+    await onSave(entriesWithDate);
     setSaving(false);
     setExercises([
       { name: "", type: "strength", sets: 3, reps: 10, weight: null, duration_min: null, distance_km: null, calories: null, notes: "" },
     ]);
   };
+
+  const exerciseTypes = [
+    { value: "strength", label: "Strength", icon: "🏋️" },
+    { value: "cardio", label: "Cardio", icon: "🏃" },
+    { value: "flexibility", label: "Flexibility", icon: "🧘" },
+  ];
 
   return (
     <div className={card.base}>
@@ -117,6 +131,19 @@ export default function WorkoutLogger({ onSave }: WorkoutLoggerProps) {
         >
           {showPresets ? "Hide presets" : "Exercise presets"}
         </button>
+      </div>
+
+      {/* Workout Date (optional) */}
+      <div className="mb-4 space-y-1">
+        <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Workout Date (optional)</Label>
+        <input
+          type="date"
+          value={workoutDate}
+          onChange={(e) => setWorkoutDate(e.target.value)}
+          className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
+          style={{ color: "var(--color-text)", backgroundColor: "var(--color-bg)" }}
+        />
+        <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>Defaults to today if empty</p>
       </div>
 
       {/* Exercise Presets */}
@@ -172,16 +199,40 @@ export default function WorkoutLogger({ onSave }: WorkoutLoggerProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Exercise Name</Label>
-                <Input
-                  value={ex.name}
-                  onChange={(e) => updateExercise(idx, "name", e.target.value)}
-                  placeholder="e.g. Bench Press"
-                />
-              </div>
+            {/* Exercise Name */}
+            <div className="space-y-1 mb-3">
+              <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Exercise Name</Label>
+              <Input
+                value={ex.name}
+                onChange={(e) => updateExercise(idx, "name", e.target.value)}
+                placeholder="e.g. Bench Press"
+              />
+            </div>
 
+            {/* Exercise Type */}
+            <div className="space-y-1 mb-3">
+              <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Type</Label>
+              <div className="flex gap-2">
+                {exerciseTypes.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => updateExercise(idx, "type", t.value)}
+                    className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      ex.type === t.value
+                        ? "bg-[#8b6914] text-white"
+                        : "bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]"
+                    }`}
+                  >
+                    <span>{t.icon}</span>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sets & Reps */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="space-y-1">
                 <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Sets</Label>
                 <Input
@@ -191,7 +242,6 @@ export default function WorkoutLogger({ onSave }: WorkoutLoggerProps) {
                   onChange={(e) => updateExercise(idx, "sets", Number(e.target.value) || 1)}
                 />
               </div>
-
               <div className="space-y-1">
                 <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Reps</Label>
                 <Input
@@ -202,7 +252,10 @@ export default function WorkoutLogger({ onSave }: WorkoutLoggerProps) {
                   placeholder="-"
                 />
               </div>
+            </div>
 
+            {/* Weight & Duration */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="space-y-1">
                 <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Weight (kg)</Label>
                 <Input
@@ -214,7 +267,6 @@ export default function WorkoutLogger({ onSave }: WorkoutLoggerProps) {
                   placeholder="-"
                 />
               </div>
-
               <div className="space-y-1">
                 <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Duration (min)</Label>
                 <Input
@@ -225,6 +277,31 @@ export default function WorkoutLogger({ onSave }: WorkoutLoggerProps) {
                   placeholder="-"
                 />
               </div>
+            </div>
+
+            {/* Distance (cardio only) */}
+            {ex.type === "cardio" && (
+              <div className="space-y-1 mb-3">
+                <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Distance (km)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={ex.distance_km ?? ""}
+                  onChange={(e) => updateExercise(idx, "distance_km", Number(e.target.value) || null)}
+                  placeholder="-"
+                />
+              </div>
+            )}
+
+            {/* Notes */}
+            <div className="space-y-1">
+              <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Notes</Label>
+              <Input
+                value={ex.notes}
+                onChange={(e) => updateExercise(idx, "notes", e.target.value)}
+                placeholder="Optional notes..."
+              />
             </div>
           </div>
         ))}

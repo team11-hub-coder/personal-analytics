@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
+import { detectTimezone, getCurrencyFromTimezone } from "@/lib/currency";
 import type { Profile } from "@/types";
 
 // Helper to get authenticated user or throw
@@ -39,13 +40,15 @@ export function useProfile() {
 
       // If profile doesn't exist, create it
       if (profileErr && profileErr.code === "PGRST116") {
+        const detectedTz = detectTimezone();
+        const detectedCurrency = getCurrencyFromTimezone(detectedTz);
         const { data: newProfile, error: createErr } = await supabase
           .from("profiles")
           .insert({
             id: user!.id,
             display_name: user!.email?.split("@")[0] || "User",
-            currency: "MMK",
-            timezone: "Asia/Yangon",
+            currency: detectedCurrency,
+            timezone: detectedTz,
           })
           .select()
           .single();

@@ -10,7 +10,7 @@ import { useUIStore } from "@/store/ui";
 import WorkoutStats from "@/components/workouts/WorkoutStats";
 import WorkoutHistory from "@/components/workouts/WorkoutHistory";
 import CameraWorkout from "@/components/workouts/CameraWorkout";
-import QuickLogOverlay from "@/components/workouts/QuickLogOverlay";
+import QuickLogOverlay, { type QuickLogData } from "@/components/workouts/QuickLogOverlay";
 import ExerciseCategories from "@/components/workouts/ExerciseCategories";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -132,7 +132,7 @@ export default function WorkoutsPage() {
 
   // ─── Quick Log ───────────────────────────────────────
   const handleQuickLog = useCallback(
-    async (data: { exerciseName: string; category: string; sets: number; reps: number | null; weight: number | null; duration_min: number | null; distance_km: number | null; calories: number | null; notes: string }) => {
+    async (data: QuickLogData) => {
       if (!user) return;
       const exerciseType = data.duration_min ? "cardio" : "strength";
       // Auto-calculate calories if not provided
@@ -155,7 +155,7 @@ export default function WorkoutsPage() {
         distance_km: data.distance_km,
         calories,
         notes: `${data.category}${data.notes ? ` - ${data.notes}` : ""}`,
-        date: getLocalISOString(),
+        date: data.date || getLocalISOString(),
       });
       triggerRefresh();
     },
@@ -321,7 +321,7 @@ export default function WorkoutsPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--color-text)" }}>Workout Tracker</h1>
+          <h1 className="text-xl font-bold" style={{ color: "var(--color-text)" }}>Workout Tracker</h1>
           <p style={{ color: "var(--color-text-secondary)" }}>Log workouts and track your fitness progress.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -330,7 +330,7 @@ export default function WorkoutsPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[#8b6914] hover:bg-[#a07d1a] text-white transition-colors"
           >
             <Plus size={16} />
-            Quick Log
+            Add Workout
           </button>
           <button
             onClick={() => { setAiOpen(true); setAiStep("pick"); setGeneratedWorkout(null); }}
@@ -399,7 +399,7 @@ export default function WorkoutsPage() {
                     <ArrowLeft size={20} style={{ color: "var(--color-text-secondary)" }} />
                   </button>
                 )}
-                <h2 className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
+                <h2 className="text-base font-bold" style={{ color: "var(--color-text)" }}>
                   {aiStep === "pick" ? "AI Workout Generator" : generatedWorkout?.title ?? "Generating..."}
                 </h2>
               </div>
@@ -497,7 +497,7 @@ export default function WorkoutsPage() {
           >
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
-              <h2 className="text-lg font-bold" style={{ color: "var(--color-text)" }}>Form Check</h2>
+              <h2 className="text-base font-bold" style={{ color: "var(--color-text)" }}>Form Check</h2>
               <button onClick={closeFormCheck} className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)]">
                 <X size={20} style={{ color: "var(--color-text-secondary)" }} />
               </button>
@@ -563,7 +563,7 @@ function CalorieProgress({ refreshKey }: { refreshKey: number }) {
             </p>
           </div>
         </div>
-        <span className="text-lg font-bold" style={{ color: progress >= 100 ? "#10b981" : "#f59e0b" }}>
+        <span className="text-base font-bold" style={{ color: progress >= 100 ? "#10b981" : "#f59e0b" }}>
           {progress}%
         </span>
       </div>

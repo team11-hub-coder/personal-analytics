@@ -55,11 +55,11 @@ export function getCurrencyFromTimezone(timezone: string): string {
   return timezoneCurrencyMap[timezone] || "USD";
 }
 
-// Format currency with symbol (no decimals)
+// Format currency with symbol (2 decimal places)
 export function formatCurrency(amount: number, currencyCode: string): string {
   const currency = currencies.find((c) => c.code === currencyCode);
   const symbol = currency?.symbol || currencyCode;
-  return `${symbol}${Math.round(amount).toLocaleString()}`;
+  return `${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${symbol}`;
 }
 
 // List of common timezones for dropdown

@@ -103,7 +103,7 @@ export const currencySchema = z.object({
 export const workoutSchema = z.object({
   exercise_type: z.enum(["strength", "cardio", "flexibility"]),
   exercise_name: z.string().min(1, "Exercise name is required"),
-  date: z.string().min(1, "Date is required"),
+  date: z.string().optional(),
   sets: z.number().int().positive().optional().nullable(),
   reps: z.number().int().positive().optional().nullable(),
   weight: z.number().positive().optional().nullable(),

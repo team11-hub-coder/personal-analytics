@@ -171,7 +171,7 @@ function BudgetItem({
           <div className="flex-1">
             <input
               type="number"
-              step="1"
+              step="0.01"
               min="0"
               {...register("monthly_limit", { valueAsNumber: true })}
               className="w-full border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm"
