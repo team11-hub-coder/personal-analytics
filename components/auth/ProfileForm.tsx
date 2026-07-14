@@ -34,6 +34,7 @@ export default function ProfileForm() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isDirty },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -61,6 +62,9 @@ export default function ProfileForm() {
       if (needsDetectTimezone) setValue("timezone", browserTimezone, { shouldDirty: true });
     }
   }, [profile, reset, setValue]);
+
+  const watchedCurrency = watch("currency");
+  const watchedTimezone = watch("timezone");
 
   const onSubmit = (data: ProfileFormData) => {
     updateProfile.mutate(data, {
@@ -244,7 +248,7 @@ export default function ProfileForm() {
                     ))}
                   </select>
                   <p className="text-xs text-green-600 mt-1">
-                    ✓ Detected: {getCurrencyFromTimezone(detectTimezone())}
+                    ✓ Current: {watchedCurrency} — {currencies.find((c) => c.code === watchedCurrency)?.name}
                   </p>
                 </div>
                 <div>
@@ -262,7 +266,7 @@ export default function ProfileForm() {
                     ))}
                   </select>
                   <p className="text-xs text-green-600 mt-1">
-                    ✓ Detected: {detectTimezone()}
+                    ✓ Current: {timezones.find((t) => t.value === watchedTimezone)?.label || watchedTimezone}
                   </p>
                 </div>
               </div>
