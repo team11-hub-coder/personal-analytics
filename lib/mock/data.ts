@@ -1,6 +1,25 @@
-import type { Transaction, Workout, Task, Reminder, Budget } from "@/types";
+import type { Workout, Task, Reminder } from "@/types";
 
-export const mockBudgets: Budget[] = [
+interface MockBudget {
+  id: number;
+  user_id: string;
+  category: string;
+  monthly_limit: number;
+  month: string;
+}
+
+interface MockTransaction {
+  id: number;
+  user_id: string;
+  type: "income" | "expense";
+  amount: number;
+  category: string;
+  description: string;
+  date: string;
+  created_at: string;
+}
+
+export const mockBudgets: MockBudget[] = [
   { id: 1, user_id: "1", category: "food", monthly_limit: 500, month: "2026-07" },
   { id: 2, user_id: "1", category: "transport", monthly_limit: 200, month: "2026-07" },
   { id: 3, user_id: "1", category: "bills", monthly_limit: 400, month: "2026-07" },
@@ -9,7 +28,7 @@ export const mockBudgets: Budget[] = [
   { id: 6, user_id: "1", category: "health", monthly_limit: 100, month: "2026-07" },
 ];
 
-export const mockTransactions: Transaction[] = [
+export const mockTransactions: MockTransaction[] = [
   { id: 1, user_id: "1", type: "expense", amount: 45.99, category: "food", description: "Grocery shopping", date: "2026-07-08", created_at: "2026-07-08T10:00:00Z" },
   { id: 2, user_id: "1", type: "expense", amount: 12.50, category: "transport", description: "Uber ride", date: "2026-07-08", created_at: "2026-07-08T09:00:00Z" },
   { id: 3, user_id: "1", type: "income", amount: 3200, category: "salary", description: "Monthly salary", date: "2026-07-01", created_at: "2026-07-01T00:00:00Z" },
@@ -32,10 +51,10 @@ export const mockWorkouts: Workout[] = [
 ];
 
 export const mockTasks: Task[] = [
-  { id: 1, user_id: "1", title: "Review PR #42", description: "Code review for dashboard feature", priority: "high", status: "pending", due_date: "2026-07-09", completed_at: null, created_at: "2026-07-08T09:00:00Z" },
-  { id: 2, user_id: "1", title: "Buy groceries", description: "", priority: "medium", status: "completed", due_date: "2026-07-08", completed_at: "2026-07-08T14:00:00Z", created_at: "2026-07-08T08:00:00Z" },
-  { id: 3, user_id: "1", title: "Update resume", description: "", priority: "low", status: "pending", due_date: "2026-07-15", completed_at: null, created_at: "2026-07-07T10:00:00Z" },
-  { id: 4, user_id: "1", title: "Call dentist", description: "Schedule checkup", priority: "medium", status: "pending", due_date: "2026-07-10", completed_at: null, created_at: "2026-07-07T11:00:00Z" },
+  { id: 1, user_id: "1", category_id: null, title: "Review PR #42", description: "Code review for dashboard feature", priority: "high", priority_rank: 1, status: "pending", due_date: "2026-07-09", completed_at: null, created_at: "2026-07-08T09:00:00Z", updated_at: "2026-07-08T09:00:00Z" },
+  { id: 2, user_id: "1", category_id: null, title: "Buy groceries", description: "", priority: "medium", priority_rank: 2, status: "completed", due_date: "2026-07-08", completed_at: "2026-07-08T14:00:00Z", created_at: "2026-07-08T08:00:00Z", updated_at: "2026-07-08T14:00:00Z" },
+  { id: 3, user_id: "1", category_id: null, title: "Update resume", description: "", priority: "low", priority_rank: 3, status: "pending", due_date: "2026-07-15", completed_at: null, created_at: "2026-07-07T10:00:00Z", updated_at: "2026-07-07T10:00:00Z" },
+  { id: 4, user_id: "1", category_id: null, title: "Call dentist", description: "Schedule checkup", priority: "medium", priority_rank: 2, status: "pending", due_date: "2026-07-10", completed_at: null, created_at: "2026-07-07T11:00:00Z", updated_at: "2026-07-07T11:00:00Z" },
 ];
 
 export const mockReminders: Reminder[] = [
@@ -119,6 +138,11 @@ export const getBudgetProgress = () => {
       )
       .reduce((s, t) => s + t.amount, 0);
     const percent = Math.round((spent / b.monthly_limit) * 100);
-    return { ...b, spent, percent };
+    return {
+      category: b.category,
+      monthly_limit: b.monthly_limit,
+      spent,
+      percent,
+    };
   });
 };

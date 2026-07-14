@@ -5,19 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateTaskCategory } from "@/hooks/useTasks";
 import { taskCategorySchema, type TaskCategoryFormData } from "@/lib/validations";
-import { button } from "@/lib/theme";
+import { button, categoryColorOptions } from "@/lib/theme";
 import { Plus, Loader2, X } from "lucide-react";
-
-const colorOptions = [
-  { value: "#22c55e", label: "Green" },
-  { value: "#3b82f6", label: "Blue" },
-  { value: "#f59e0b", label: "Amber" },
-  { value: "#ef4444", label: "Red" },
-  { value: "#8b5cf6", label: "Purple" },
-  { value: "#ec4899", label: "Pink" },
-  { value: "#06b6d4", label: "Cyan" },
-  { value: "#f97316", label: "Orange" },
-];
 
 interface CategoryFormModalProps {
   isOpen: boolean;
@@ -37,16 +26,16 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
   } = useForm<TaskCategoryFormData>({
     resolver: zodResolver(taskCategorySchema),
     defaultValues: {
-      color: colorOptions[0].value,
+      color: categoryColorOptions[0].value,
     },
   });
 
-  const selectedColor = watch("color") ?? colorOptions[0].value;
+  const selectedColor = watch("color") ?? categoryColorOptions[0].value;
 
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      reset({ color: colorOptions[0].value });
+      reset({ color: categoryColorOptions[0].value });
     }
   }, [isOpen, reset]);
 
@@ -126,7 +115,7 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
               Color
             </label>
             <div className="flex gap-3 flex-wrap">
-              {colorOptions.map((opt) => (
+              {categoryColorOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"

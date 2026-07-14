@@ -20,6 +20,7 @@ export interface Category {
 export interface Transaction {
   id: number;
   user_id: string;
+  type: "expense" | "income";
   amount: number;
   category_id: number | null;
   description: string | null;
@@ -68,6 +69,35 @@ export interface Workout {
   notes: string;
   date: string;
   created_at: string;
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  user_id: string;
+  title: string;
+  duration_minutes: number;
+  equipment: string[];
+  target_muscles: string[];
+  difficulty: "beginner" | "intermediate" | "advanced";
+  exercises: WorkoutExercise[];
+  created_at: string;
+}
+
+export interface WorkoutExercise {
+  name: string;
+  type: "strength" | "cardio" | "flexibility";
+  sets: number;
+  reps: number | null;
+  weight: number | null;
+  duration_min: number | null;
+  rest_seconds: number;
+  muscle_group: string;
+}
+
+export interface GeneratedWorkout {
+  title: string;
+  duration: number;
+  exercises: WorkoutExercise[];
 }
 
 export interface TaskCategory {
@@ -120,3 +150,19 @@ export interface ChatMessage {
   content: string;
   created_at: string;
 }
+
+export interface FocusSession {
+  id: string;
+  user_id: string;
+  title: string;
+  mode: "pomodoro" | "stopwatch";
+  duration_minutes: number;
+  break_minutes: number;
+  completed: boolean;
+  completed_count: number;
+  started_at: string;
+  ended_at: string | null;
+  created_at: string;
+}
+
+export type FocusPhase = "idle" | "focus" | "break" | "longBreak";
