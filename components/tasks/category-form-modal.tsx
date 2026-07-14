@@ -93,7 +93,7 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
       <div className="relative bg-[var(--color-surface)] rounded-xl shadow-xl w-full max-w-md mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)]">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">
             Add Task Category
           </h2>
           <button

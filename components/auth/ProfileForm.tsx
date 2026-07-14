@@ -51,7 +51,10 @@ export default function ProfileForm() {
 
   useEffect(() => {
     if (profile) {
-      // Detect timezone from browser
+      // Auto-detect only if profile has never been set (empty/null values)
+      const needsDetectTimezone = !profile.timezone;
+      const needsDetectCurrency = !profile.currency;
+
       const browserTimezone = detectTimezone();
       const browserCurrency = getCurrencyFromTimezone(browserTimezone);
 
@@ -143,7 +146,7 @@ export default function ProfileForm() {
               />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--color-text)]">
+              <h2 className="text-base font-semibold text-[var(--color-text)]">
                 {profile?.display_name || "User"}
               </h2>
               <p className="text-sm text-[var(--color-text-secondary)]">
@@ -342,7 +345,7 @@ function ProgressStats() {
             key={stat.label}
             className="p-4 bg-[var(--color-surface-hover)] rounded-lg text-center"
           >
-            <p className="text-2xl font-bold text-[var(--color-text)]">
+            <p className="text-xl font-bold text-[var(--color-text)]">
               {stat.value}
             </p>
             <p className="text-xs text-[var(--color-text-secondary)]">

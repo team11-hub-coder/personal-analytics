@@ -72,7 +72,7 @@ export function ReminderAnalytics() {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold" style={{ color: "var(--color-text)" }}>
+      <h3 className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
         Reminder Analytics
       </h3>
 

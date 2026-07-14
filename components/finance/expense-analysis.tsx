@@ -36,7 +36,7 @@ export default function ExpenseAnalysis() {
           <p className="text-xs text-[var(--color-text-muted)] mb-1">
             Total Spent ({new Date().toLocaleDateString("en-US", { month: "short" })})
           </p>
-          <p className="text-xl font-bold text-[var(--color-text)]">
+          <p className="text-base font-bold text-[var(--color-text)]">
             {formatCurrency(totalExpenses, currency)}
           </p>
           <p className="text-xs text-[var(--color-text-muted)]">
@@ -47,7 +47,7 @@ export default function ExpenseAnalysis() {
           <p className="text-xs text-[var(--color-text-muted)] mb-1">
             Daily Average
           </p>
-          <p className="text-xl font-bold text-[var(--color-text)]">
+          <p className="text-base font-bold text-[var(--color-text)]">
             {formatCurrency(dailyAverage, currency)}
           </p>
           <p className="text-xs text-[var(--color-text-muted)]">per day</p>
@@ -56,7 +56,7 @@ export default function ExpenseAnalysis() {
           <p className="text-xs text-[var(--color-text-muted)] mb-1">
             Projected (End of Month)
           </p>
-          <p className="text-xl font-bold text-[var(--color-text)]">
+          <p className="text-base font-bold text-[var(--color-text)]">
             {formatCurrency(projectedTotal, currency)}
           </p>
           <div className="flex items-center gap-1 mt-1">
@@ -78,7 +78,7 @@ export default function ExpenseAnalysis() {
           <p className="text-xs text-[var(--color-text-muted)] mb-1">
             Budget Used
           </p>
-          <p className="text-xl font-bold text-[var(--color-text)]">
+          <p className="text-base font-bold text-[var(--color-text)]">
             {budgetUsage.toFixed(0)}%
           </p>
           <div className="w-full bg-[var(--color-border)] rounded-full h-1.5 mt-2">

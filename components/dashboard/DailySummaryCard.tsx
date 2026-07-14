@@ -69,15 +69,15 @@ export default function DailySummaryCard() {
 
           <div className="grid grid-cols-3 gap-2 pt-2">
             <div className="text-center p-2 rounded-lg bg-[var(--color-surface-hover)]">
-              <p className="text-lg font-bold text-[var(--color-text)]">{summary.stats.calories}</p>
+              <p className="text-base font-bold text-[var(--color-text)]">{summary.stats.calories}</p>
               <p className="text-xs text-[var(--color-text-muted)]">cal burned</p>
             </div>
             <div className="text-center p-2 rounded-lg bg-[var(--color-surface-hover)]">
-              <p className="text-lg font-bold text-[var(--color-text)]">{summary.stats.tasksCompleted}</p>
+              <p className="text-base font-bold text-[var(--color-text)]">{summary.stats.tasksCompleted}</p>
               <p className="text-xs text-[var(--color-text-muted)]">tasks done</p>
             </div>
             <div className="text-center p-2 rounded-lg bg-[var(--color-surface-hover)]">
-              <p className="text-lg font-bold text-[var(--color-text)]">{summary.stats.focusMinutes}m</p>
+              <p className="text-base font-bold text-[var(--color-text)]">{summary.stats.focusMinutes}m</p>
               <p className="text-xs text-[var(--color-text-muted)]">focus time</p>
             </div>
           </div>

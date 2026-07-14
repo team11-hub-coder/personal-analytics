@@ -24,6 +24,8 @@ import { useTransactions } from "@/hooks/useExpenses";
 import { useWorkouts } from "@/hooks/useWorkouts";
 import { useTasks } from "@/hooks/useTasks";
 import { useBudgets } from "@/hooks/useBudgets";
+import { useProfile } from "@/hooks/useProfile";
+import { formatCurrency } from "@/lib/currency";
 import {
   useDashboardSpentToday,
   useDashboardCategoryData,
@@ -49,7 +51,9 @@ function formatFocusTime(mins: number) {
 
 export default function DashboardPage() {
   // ─── Raw Data Fetching (for real-time daily/weekly/monthly stats) ───
-  const { data: rawTransactions = [], isLoading: txLoading } = useTransactions();
+  const { data: profile } = useProfile();
+  const { data: rawTransactions = [], isLoading: txLoading } =
+    useTransactions();
   const { data: workoutResult, isLoading: woLoading } = useWorkouts(1000);
   const { data: rawTasks = [], isLoading: rawTasksLoading } = useTasks();
   const { data: focusResult, isLoading: focusLoading } = useFocusSessions(1000);
@@ -60,15 +64,23 @@ export default function DashboardPage() {
   const currency = profile?.currency || "MMK";
 
   // ─── Dashboard Hooks (for charts/list views) ─────────────────────────
-  const { data: categoryData = [], isLoading: catLoading } = useDashboardCategoryData();
-  const { data: weeklySpending = [], isLoading: weeklySpendingLoading } = useDashboardWeeklySpending();
-  const { data: budgetProgress = [], isLoading: budgetLoading } = useDashboardBudgetProgress();
-  const { data: upcomingReminders = [], isLoading: remindersLoading } = useDashboardUpcomingReminders();
-  const { data: weeklyWorkouts = [], isLoading: weeklyWorkoutsLoading } = useDashboardWeeklyWorkouts();
-  const { data: recentWorkouts = [], isLoading: recentWorkoutsLoading } = useDashboardRecentWorkouts(4);
+  const { data: categoryData = [], isLoading: catLoading } =
+    useDashboardCategoryData();
+  const { data: weeklySpending = [], isLoading: weeklySpendingLoading } =
+    useDashboardWeeklySpending();
+  const { data: budgetProgress = [], isLoading: budgetLoading } =
+    useDashboardBudgetProgress();
+  const { data: upcomingReminders = [], isLoading: remindersLoading } =
+    useDashboardUpcomingReminders();
+  const { data: weeklyWorkouts = [], isLoading: weeklyWorkoutsLoading } =
+    useDashboardWeeklyWorkouts();
+  const { data: recentWorkouts = [], isLoading: recentWorkoutsLoading } =
+    useDashboardRecentWorkouts(4);
 
   // ─── Summary Data Filter State ──────────────────────────────
-  const [timeRange, setTimeRange] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [timeRange, setTimeRange] = useState<"daily" | "weekly" | "monthly">(
+    "daily",
+  );
 
   const stats = useMemo(() => {
     // Current local date components
@@ -96,9 +108,15 @@ export default function DashboardPage() {
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
     // Workout Calculation
-    const dailyWorkouts = rawWorkouts.filter((w) => w.date.split("T")[0] === todayStr).length;
-    const weeklyWorkouts = rawWorkouts.filter((w) => w.date.split("T")[0] >= weekAgoStr).length;
-    const monthlyWorkouts = rawWorkouts.filter((w) => w.date.split("T")[0] >= monthStartStr).length;
+    const dailyWorkouts = rawWorkouts.filter(
+      (w) => w.date.split("T")[0] === todayStr,
+    ).length;
+    const weeklyWorkouts = rawWorkouts.filter(
+      (w) => w.date.split("T")[0] >= weekAgoStr,
+    ).length;
+    const monthlyWorkouts = rawWorkouts.filter(
+      (w) => w.date.split("T")[0] >= monthStartStr,
+    ).length;
 
     // Pending Tasks (always snapshot count)
     const pendingCount = rawTasks.filter((t) => t.status === "pending").length;
@@ -115,9 +133,24 @@ export default function DashboardPage() {
       .reduce((sum, s) => sum + s.duration_minutes, 0);
 
     return {
-      daily: { spent: dailySpent, workouts: dailyWorkouts, tasks: pendingCount, focus: dailyFocus },
-      weekly: { spent: weeklySpent, workouts: weeklyWorkouts, tasks: pendingCount, focus: weeklyFocus },
-      monthly: { spent: monthlySpent, workouts: monthlyWorkouts, tasks: pendingCount, focus: monthlyFocus },
+      daily: {
+        spent: dailySpent,
+        workouts: dailyWorkouts,
+        tasks: pendingCount,
+        focus: dailyFocus,
+      },
+      weekly: {
+        spent: weeklySpent,
+        workouts: weeklyWorkouts,
+        tasks: pendingCount,
+        focus: weeklyFocus,
+      },
+      monthly: {
+        spent: monthlySpent,
+        workouts: monthlyWorkouts,
+        tasks: pendingCount,
+        focus: monthlyFocus,
+      },
     };
   }, [rawTransactions, rawWorkouts, rawTasks, rawFocusSessions]);
 
@@ -152,7 +185,20 @@ export default function DashboardPage() {
   // ─── Filtered Spending Trend ───────────────────────────────
   const filteredSpendingTrend = useMemo(() => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const now = new Date();
 
     if (timeRange === "daily") {
@@ -171,7 +217,8 @@ export default function DashboardPage() {
       return weekDays.map(({ day, amount }) => ({ day, amount }));
     } else if (timeRange === "weekly") {
       // Last 4 weeks
-      const weeks: { day: string; start: Date; end: Date; amount: number }[] = [];
+      const weeks: { day: string; start: Date; end: Date; amount: number }[] =
+        [];
       for (let i = 3; i >= 0; i--) {
         const end = new Date(now);
         end.setDate(end.getDate() - i * 7);
@@ -190,15 +237,27 @@ export default function DashboardPage() {
       return weeks.map(({ day, amount }) => ({ day, amount }));
     } else {
       // Last 6 months
-      const monthlyData: { day: string; year: number; month: number; amount: number }[] = [];
+      const monthlyData: {
+        day: string;
+        year: number;
+        month: number;
+        amount: number;
+      }[] = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const label = months[d.getMonth()];
-        monthlyData.push({ day: label, year: d.getFullYear(), month: d.getMonth(), amount: 0 });
+        monthlyData.push({
+          day: label,
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          amount: 0,
+        });
       }
       rawTransactions.forEach((t) => {
         const tDate = new Date(t.date);
-        const entry = monthlyData.find((m) => tDate.getFullYear() === m.year && tDate.getMonth() === m.month);
+        const entry = monthlyData.find(
+          (m) => tDate.getFullYear() === m.year && tDate.getMonth() === m.month,
+        );
         if (entry) entry.amount += Number(t.amount);
       });
       return monthlyData.map(({ day, amount }) => ({ day, amount }));
@@ -208,7 +267,20 @@ export default function DashboardPage() {
   // ─── Filtered Workout Trend ────────────────────────────────
   const filteredWorkoutTrend = useMemo(() => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const now = new Date();
 
     if (timeRange === "daily") {
@@ -228,7 +300,8 @@ export default function DashboardPage() {
       return weekDays.map(({ week, count }) => ({ week, count }));
     } else if (timeRange === "weekly") {
       // Last 4 weeks
-      const weeks: { week: string; start: Date; end: Date; count: number }[] = [];
+      const weeks: { week: string; start: Date; end: Date; count: number }[] =
+        [];
       for (let i = 3; i >= 0; i--) {
         const end = new Date(now);
         end.setDate(end.getDate() - i * 7);
@@ -247,15 +320,27 @@ export default function DashboardPage() {
       return weeks.map(({ week, count }) => ({ week, count }));
     } else {
       // Last 6 months
-      const monthlyData: { week: string; year: number; month: number; count: number }[] = [];
+      const monthlyData: {
+        week: string;
+        year: number;
+        month: number;
+        count: number;
+      }[] = [];
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const label = months[d.getMonth()];
-        monthlyData.push({ week: label, year: d.getFullYear(), month: d.getMonth(), count: 0 });
+        monthlyData.push({
+          week: label,
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          count: 0,
+        });
       }
       rawWorkouts.forEach((w) => {
         const wDate = new Date(w.date);
-        const entry = monthlyData.find((m) => wDate.getFullYear() === m.year && wDate.getMonth() === m.month);
+        const entry = monthlyData.find(
+          (m) => wDate.getFullYear() === m.year && wDate.getMonth() === m.month,
+        );
         if (entry) entry.count++;
       });
       return monthlyData.map(({ week, count }) => ({ week, count }));
@@ -306,35 +391,63 @@ export default function DashboardPage() {
 
   // Dynamic labels based on tab
   const labels = {
-    daily: { spent: "Spent Today", workouts: "Workouts Today", tasks: "Pending Tasks", focus: "Focus Today" },
-    weekly: { spent: "Spent This Week", workouts: "Workouts This Week", tasks: "Pending Tasks", focus: "Focus This Week" },
-    monthly: { spent: "Spent This Month", workouts: "Workouts This Month", tasks: "Pending Tasks", focus: "Focus This Month" },
+    daily: {
+      spent: "Spent Today",
+      workouts: "Workouts Today",
+      tasks: "Pending Tasks",
+      focus: "Focus Today",
+      categoryChart: "Spending by Category (Today)",
+      spendingChart: "Daily Spending (Last 7 Days)",
+      workoutChart: "Workout Frequency (Last 7 Days)",
+      budgetChart: "Daily Budget Progress",
+    },
+    weekly: {
+      spent: "Spent This Week",
+      workouts: "Workouts This Week",
+      tasks: "Pending Tasks",
+      focus: "Focus This Week",
+      categoryChart: "Spending by Category (This Week)",
+      spendingChart: "Weekly Spending (Last 4 Weeks)",
+      workoutChart: "Workout Frequency (Last 4 Weeks)",
+      budgetChart: "Weekly Budget Progress",
+    },
+    monthly: {
+      spent: "Spent This Month",
+      workouts: "Workouts This Month",
+      tasks: "Pending Tasks",
+      focus: "Focus This Month",
+      categoryChart: "Spending by Category (This Month)",
+      spendingChart: "Monthly Spending (Last 6 Months)",
+      workoutChart: "Workout Frequency (Last 6 Months)",
+      budgetChart: "Monthly Budget Progress",
+    },
   };
 
-  const statsLoading = txLoading || woLoading || rawTasksLoading || focusLoading;
+  const statsLoading =
+    txLoading || woLoading || rawTasksLoading || focusLoading;
 
   // ─── Stat Cards ───────────────────────────────────────
   const statCards = [
     {
-      icon: <DollarSign size={20} />,
+      icon: <DollarSign size={15} />,
       label: labels[timeRange].spent,
       value: statsLoading ? null : formatCurrency(stats[timeRange].spent, currency),
       color: statColors.emerald,
     },
     {
-      icon: <Dumbbell size={20} />,
+      icon: <Dumbbell size={15} />,
       label: labels[timeRange].workouts,
       value: statsLoading ? null : stats[timeRange].workouts.toString(),
       color: statColors.gold,
     },
     {
-      icon: <CheckSquare size={20} />,
+      icon: <CheckSquare size={15} />,
       label: labels[timeRange].tasks,
       value: statsLoading ? null : stats[timeRange].tasks.toString(),
       color: statColors.amber,
     },
     {
-      icon: <Bell size={20} />,
+      icon: <Bell size={15} />,
       label: "Reminders",
       value: remindersLoading ? null : upcomingReminders.length.toString(),
       color: statColors.rose,
@@ -347,7 +460,12 @@ export default function DashboardPage() {
     },
   ];
 
-  const isLoading = txLoading || woLoading || catLoading || weeklySpendingLoading || budgetLoading;
+  const isLoading =
+    txLoading ||
+    woLoading ||
+    catLoading ||
+    weeklySpendingLoading ||
+    budgetLoading;
 
   return (
     <div className="space-y-8">
@@ -376,18 +494,23 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
         {statCards.map((s) => (
           <div key={s.label} className={statCard.container}>
-            <p className={`${statCard.label} font-semibold truncate`}>{s.label}</p>
-            <div className="flex items-center gap-4 mt-2">
+              <p
+                className={`${statCard.label} truncate`}
+                title={s.label}
+              >
+                {s.label}
+              </p>
+            <div className="flex items-center gap-1">
               <div className={`${statCard.iconWrapper} ${s.color}`}>
                 {s.icon}
               </div>
               {s.value === null ? (
-                <Skeleton className="h-7 w-16" />
+                <Skeleton className="h-6 w-16" />
               ) : (
-                <p className={statCard.value}>{s.value}</p>
+                <p className={`${statCard.value} truncate`} title={s.value ?? undefined}>{s.value}</p>
               )}
             </div>
           </div>
@@ -396,16 +519,24 @@ export default function DashboardPage() {
 
       {/* Charts - Finance & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title={`Spending by Category (${timeRange === "daily" ? "Today" : timeRange === "weekly" ? "This Week" : "This Month"})`}>
+        <ChartCard
+          title={labels[timeRange].categoryChart}
+        >
           {txLoading ? (
-            <div className="space-y-3"><Skeleton className="h-[200px] w-full" /></div>
+            <div className="space-y-3">
+              <Skeleton className="h-[200px] w-full" />
+            </div>
           ) : (
             <SpendingCategoryChart data={filteredCategoryData} />
           )}
         </ChartCard>
-        <ChartCard title={`${timeRange === "daily" ? "Daily Spending (Last 7 Days)" : timeRange === "weekly" ? "Weekly Spending (Last 4 Weeks)" : "Monthly Spending (Last 6 Months)"}`}>
+        <ChartCard
+          title={labels[timeRange].spendingChart}
+        >
           {txLoading ? (
-            <div className="space-y-3"><Skeleton className="h-[200px] w-full" /></div>
+            <div className="space-y-3">
+              <Skeleton className="h-[200px] w-full" />
+            </div>
           ) : (
             <WeeklySpendingChart data={filteredSpendingTrend} />
           )}
@@ -413,16 +544,24 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title={`${timeRange === "daily" ? "Workout Frequency (Last 7 Days)" : timeRange === "weekly" ? "Workout Frequency (Last 4 Weeks)" : "Workout Frequency (Last 6 Months)"}`}>
+        <ChartCard
+          title={labels[timeRange].workoutChart}
+        >
           {woLoading ? (
-            <div className="space-y-3"><Skeleton className="h-[200px] w-full" /></div>
+            <div className="space-y-3">
+              <Skeleton className="h-[200px] w-full" />
+            </div>
           ) : (
             <WeeklyWorkoutChart data={filteredWorkoutTrend} />
           )}
         </ChartCard>
-        <ChartCard title={`${timeRange.charAt(0).toUpperCase() + timeRange.slice(1)} Budget Progress`}>
+        <ChartCard
+          title={labels[timeRange].budgetChart}
+        >
           {txLoading || budgetsLoading ? (
-            <div className="space-y-3"><Skeleton className="h-[200px] w-full" /></div>
+            <div className="space-y-3">
+              <Skeleton className="h-[200px] w-full" />
+            </div>
           ) : (
             <BudgetProgressChart data={filteredBudgetProgress} />
           )}
@@ -464,9 +603,7 @@ export default function DashboardPage() {
         </div>
 
         <div className={card.base}>
-          <h3 className={`${sectionHeader.title} mb-4`}>
-            Upcoming Reminders
-          </h3>
+          <h3 className={`${sectionHeader.title} mb-4`}>Upcoming Reminders</h3>
           <div className="space-y-3">
             {remindersLoading ? (
               [1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)
