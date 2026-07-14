@@ -30,7 +30,6 @@ export function useLogin() {
 }
 
 export function useRegister() {
-  const router = useRouter();
   const supabase = createClient();
 
   return useMutation({
@@ -44,11 +43,11 @@ export function useRegister() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
       if (error) throw error;
-    },
-    onSuccess: () => {
-      router.push("/dashboard");
     },
   });
 }
