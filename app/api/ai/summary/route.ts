@@ -21,8 +21,8 @@ export async function POST(_request: NextRequest) {
     today.setHours(0, 0, 0, 0);
     const todayISO = today.toISOString();
 
-    // Fetch today's data across all modules
-    const [workoutsRes, tasksRes, focusRes, transactionsRes, remindersRes] = await Promise.allSettled([
+    // Fetch today's data across all modules + user profile for currency
+    const [workoutsRes, tasksRes, focusRes, transactionsRes, remindersRes, profileRes] = await Promise.allSettled([
       supabase.from("workouts")
         .select("exercise_name, exercise_type, calories, duration_min, date")
         .eq("user_id", user.id)
@@ -44,6 +44,10 @@ export async function POST(_request: NextRequest) {
         .eq("is_active", true)
         .order("remind_at", { ascending: true })
         .limit(5),
+      supabase.from("profiles")
+        .select("currency")
+        .eq("id", user.id)
+        .single(),
     ]);
 
     const workouts = workoutsRes.status === "fulfilled" ? workoutsRes.value.data : [];
@@ -51,6 +55,8 @@ export async function POST(_request: NextRequest) {
     const focus = focusRes.status === "fulfilled" ? focusRes.value.data : [];
     const transactions = transactionsRes.status === "fulfilled" ? transactionsRes.value.data : [];
     const reminders = remindersRes.status === "fulfilled" ? remindersRes.value.data : [];
+    const profile = profileRes.status === "fulfilled" ? profileRes.value.data : null;
+    const currency = profile?.currency || "MMK";
 
     // Calculate stats
     const completedTasks = tasks?.filter(t => t.status === "completed") || [];
@@ -87,10 +93,10 @@ ${workouts?.map(w => `  - ${w.exercise_name} (${w.exercise_type})`).join("\n") |
 - Tasks: ${completedTasks.length} completed, ${pendingTasks.length} pending
 ${completedTasks.map(t => `  ✓ ${t.title}`).join("\n") || ""}
 - Focus Time: ${totalFocusMin} minutes
-- Spending: ${totalSpent}
+- Spending: ${totalSpent} ${currency}
 ${transactions?.map(t => {
   const catData = t.categories as unknown as { name: string } | null;
-  return `  - ${catData?.name || "other"}: ${t.amount}`;
+  return `  - ${catData?.name || "other"}: ${t.amount} ${currency}`;
 }).join("\n") || ""}
 - Upcoming Reminders: ${reminders?.length || 0}
 ${reminders?.map(r => `  - ${r.title}`).join("\n") || ""}
@@ -118,6 +124,7 @@ Generate the daily summary as JSON only.`);
         tasksPending: pendingTasks.length,
         focusMinutes: totalFocusMin,
         spent: totalSpent,
+        currency,
       },
     });
   } catch (error) {

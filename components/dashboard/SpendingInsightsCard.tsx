@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSpendingInsights } from "@/hooks/useAI";
 import { card, sectionHeader } from "@/lib/theme";
+import { formatCurrency } from "@/lib/currency";
 import { TrendingUp, RefreshCw, Loader2, AlertTriangle, Lightbulb, Trophy } from "lucide-react";
 import type { SpendingInsightsResult } from "@/hooks/useAI";
 
@@ -71,9 +72,9 @@ export default function SpendingInsightsCard() {
                 {insights.budgetStatus === "under" ? "✅" : insights.budgetStatus === "over" ? "⚠️" : "📊"}
               </span>
               <span>
-                {insights.budgetStatus === "under" && `Under budget — ${insights.currency} ${insights.totalSpent.toLocaleString()} spent`}
-                {insights.budgetStatus === "over" && `Over budget — ${insights.currency} ${insights.totalSpent.toLocaleString()} spent`}
-                {insights.budgetStatus === "on_track" && `On track — ${insights.currency} ${insights.totalSpent.toLocaleString()} spent`}
+                {insights.budgetStatus === "under" && `Under budget — ${formatCurrency(insights.totalSpent, insights.currency)} spent`}
+                {insights.budgetStatus === "over" && `Over budget — ${formatCurrency(insights.totalSpent, insights.currency)} spent`}
+                {insights.budgetStatus === "on_track" && `On track — ${formatCurrency(insights.totalSpent, insights.currency)} spent`}
               </span>
             </div>
           )}
@@ -83,7 +84,7 @@ export default function SpendingInsightsCard() {
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--color-surface-hover)] text-xs">
               <span className="text-[var(--color-text-secondary)]">Top category</span>
               <span className="font-medium text-[var(--color-text)]">
-                {insights.topCategory} ({insights.currency} {insights.topCategoryAmount.toLocaleString()})
+                {insights.topCategory} ({formatCurrency(insights.topCategoryAmount, insights.currency)})
               </span>
             </div>
           )}
@@ -107,7 +108,7 @@ export default function SpendingInsightsCard() {
           {/* Monthly projection */}
           {insights.monthProjection > 0 && (
             <div className="text-xs text-center pt-2 border-t border-[var(--color-border)] text-[var(--color-text-muted)]">
-              Projected monthly: {insights.currency} {insights.monthProjection.toLocaleString()}
+              Projected monthly: {formatCurrency(insights.monthProjection, insights.currency)}
             </div>
           )}
         </div>
