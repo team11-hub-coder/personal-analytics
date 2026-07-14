@@ -33,10 +33,21 @@ export default function ProfileForm() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
   });
+
+  // Auto-sync currency when timezone changes
+  const watchTimezone = watch("timezone");
+  useEffect(() => {
+    if (watchTimezone) {
+      const detectedCurrency = getCurrencyFromTimezone(watchTimezone);
+      setValue("currency", detectedCurrency, { shouldDirty: true });
+    }
+  }, [watchTimezone, setValue]);
 
   useEffect(() => {
     if (profile) {
@@ -48,15 +59,27 @@ export default function ProfileForm() {
       const isDefaultTimezone = !profile.timezone || profile.timezone === "Asia/Yangon";
       const isDefaultCurrency = !profile.currency || profile.currency === "MMK";
 
+      const newTimezone = isDefaultTimezone ? browserTimezone : profile.timezone;
+      const newCurrency = isDefaultCurrency ? browserCurrency : profile.currency;
+
+      // Set values and track if anything changed from database
       reset({
         display_name: profile.display_name,
         daily_calorie_target: profile.daily_calorie_target,
         monthly_budget_goal: profile.monthly_budget_goal,
-        currency: isDefaultCurrency ? browserCurrency : profile.currency,
-        timezone: isDefaultTimezone ? browserTimezone : profile.timezone,
+        currency: newCurrency,
+        timezone: newTimezone,
       });
+
+      // If we auto-detected new values, mark form as dirty so user can save
+      if (isDefaultTimezone || isDefaultCurrency) {
+        setTimeout(() => {
+          setValue("currency", newCurrency, { shouldDirty: true });
+          setValue("timezone", newTimezone, { shouldDirty: true });
+        }, 0);
+      }
     }
-  }, [profile, reset]);
+  }, [profile, reset, setValue]);
 
   const onSubmit = (data: ProfileFormData) => {
     updateProfile.mutate(data, {

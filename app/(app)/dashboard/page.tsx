@@ -9,6 +9,8 @@ import {
   pageHeader,
   sectionHeader,
 } from "@/lib/theme";
+import { formatCurrency } from "@/lib/currency";
+import { useProfile } from "@/hooks/useProfile";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartCard,
@@ -54,6 +56,8 @@ export default function DashboardPage() {
 
   const rawWorkouts = workoutResult?.data ?? [];
   const rawFocusSessions = focusResult?.data ?? [];
+  const { data: profile } = useProfile();
+  const currency = profile?.currency || "MMK";
 
   // ─── Dashboard Hooks (for charts/list views) ─────────────────────────
   const { data: categoryData = [], isLoading: catLoading } = useDashboardCategoryData();
@@ -314,7 +318,7 @@ export default function DashboardPage() {
     {
       icon: <DollarSign size={20} />,
       label: labels[timeRange].spent,
-      value: statsLoading ? null : `$${Number(stats[timeRange].spent).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`,
+      value: statsLoading ? null : formatCurrency(stats[timeRange].spent, currency),
       color: statColors.emerald,
     },
     {
