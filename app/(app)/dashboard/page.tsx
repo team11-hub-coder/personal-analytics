@@ -24,8 +24,6 @@ import { useTransactions } from "@/hooks/useExpenses";
 import { useWorkouts } from "@/hooks/useWorkouts";
 import { useTasks } from "@/hooks/useTasks";
 import { useBudgets } from "@/hooks/useBudgets";
-import { useProfile } from "@/hooks/useProfile";
-import { formatCurrency } from "@/lib/currency";
 import {
   useDashboardSpentToday,
   useDashboardCategoryData,
@@ -60,7 +58,6 @@ export default function DashboardPage() {
 
   const rawWorkouts = workoutResult?.data ?? [];
   const rawFocusSessions = focusResult?.data ?? [];
-  const { data: profile } = useProfile();
   const currency = profile?.currency || "MMK";
 
   // ─── Dashboard Hooks (for charts/list views) ─────────────────────────

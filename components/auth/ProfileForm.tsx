@@ -84,6 +84,9 @@ export default function ProfileForm() {
     }
   }, [profile, reset, setValue]);
 
+  const watchedCurrency = watch("currency");
+  const watchedTimezone = watch("timezone");
+
   const onSubmit = (data: ProfileFormData) => {
     updateProfile.mutate(data, {
       onSuccess: () => {
@@ -266,7 +269,7 @@ export default function ProfileForm() {
                     ))}
                   </select>
                   <p className="text-xs text-green-600 mt-1">
-                    ✓ Detected: {getCurrencyFromTimezone(detectTimezone())}
+                    ✓ Current: {watchedCurrency} — {currencies.find((c) => c.code === watchedCurrency)?.name}
                   </p>
                 </div>
                 <div>
@@ -284,7 +287,7 @@ export default function ProfileForm() {
                     ))}
                   </select>
                   <p className="text-xs text-green-600 mt-1">
-                    ✓ Detected: {detectTimezone()}
+                    ✓ Current: {timezones.find((t) => t.value === watchedTimezone)?.label || watchedTimezone}
                   </p>
                 </div>
               </div>
