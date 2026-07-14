@@ -42,7 +42,6 @@ export function useProfile() {
       if (profileErr && profileErr.code === "PGRST116") {
         const browserTimezone = detectTimezone();
         const browserCurrency = getCurrencyFromTimezone(browserTimezone);
-
         const { data: newProfile, error: createErr } = await supabase
           .from("profiles")
           .insert({

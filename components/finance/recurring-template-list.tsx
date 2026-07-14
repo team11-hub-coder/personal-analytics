@@ -258,7 +258,7 @@ function TemplateItem({
               <label className="text-xs text-[var(--color-text-muted)]">Amount</label>
               <input
                 type="number"
-                step="1"
+                step="0.01"
                 {...register("amount", { valueAsNumber: true })}
                 className="w-full border border-[var(--color-border)] rounded px-2 py-1 text-sm"
               />

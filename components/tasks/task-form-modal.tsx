@@ -127,7 +127,7 @@ export default function TaskFormModal({ isOpen, onClose, task }: TaskFormModalPr
       <div className="relative bg-[var(--color-surface)] rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)]">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">
             {isEditMode ? "Edit Task" : "Add New Task"}
           </h2>
           <button
