@@ -9,6 +9,8 @@ import {
   pageHeader,
   sectionHeader,
 } from "@/lib/theme";
+import { formatCurrency } from "@/lib/currency";
+import { useProfile } from "@/hooks/useProfile";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartCard,
@@ -22,8 +24,6 @@ import { useTransactions } from "@/hooks/useExpenses";
 import { useWorkouts } from "@/hooks/useWorkouts";
 import { useTasks } from "@/hooks/useTasks";
 import { useBudgets } from "@/hooks/useBudgets";
-import { useProfile } from "@/hooks/useProfile";
-import { formatCurrency } from "@/lib/currency";
 import {
   useDashboardSpentToday,
   useDashboardCategoryData,
@@ -58,6 +58,7 @@ export default function DashboardPage() {
 
   const rawWorkouts = workoutResult?.data ?? [];
   const rawFocusSessions = focusResult?.data ?? [];
+  const currency = profile?.currency || "MMK";
 
   // ─── Dashboard Hooks (for charts/list views) ─────────────────────────
   const { data: categoryData = [], isLoading: catLoading } =
@@ -427,9 +428,7 @@ export default function DashboardPage() {
     {
       icon: <DollarSign size={15} />,
       label: labels[timeRange].spent,
-      value: statsLoading
-        ? null
-        : formatCurrency(stats[timeRange].spent, profile?.currency || "USD"),
+      value: statsLoading ? null : formatCurrency(stats[timeRange].spent, currency),
       color: statColors.emerald,
     },
     {

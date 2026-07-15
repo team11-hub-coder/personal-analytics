@@ -65,6 +65,7 @@ export interface DailySummary {
     tasksPending: number;
     focusMinutes: number;
     spent: number;
+    currency: string;
   };
 }
 

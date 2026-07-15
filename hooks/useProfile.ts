@@ -38,17 +38,17 @@ export function useProfile() {
         .eq("id", user!.id)
         .single();
 
-      // If profile doesn't exist, create it
+      // If profile doesn't exist, create it with auto-detected timezone & currency
       if (profileErr && profileErr.code === "PGRST116") {
-        const detectedTz = detectTimezone();
-        const detectedCurrency = getCurrencyFromTimezone(detectedTz);
+        const browserTimezone = detectTimezone();
+        const browserCurrency = getCurrencyFromTimezone(browserTimezone);
         const { data: newProfile, error: createErr } = await supabase
           .from("profiles")
           .insert({
             id: user!.id,
             display_name: user!.email?.split("@")[0] || "User",
-            currency: detectedCurrency,
-            timezone: detectedTz,
+            currency: browserCurrency,
+            timezone: browserTimezone,
           })
           .select()
           .single();
@@ -61,6 +61,30 @@ export function useProfile() {
       }
 
       if (profileErr) throw profileErr;
+
+      // Auto-update if profile still has default values (from trigger)
+      const browserTimezone = detectTimezone();
+      const browserCurrency = getCurrencyFromTimezone(browserTimezone);
+      const isDefaultTimezone = !profile.timezone || profile.timezone === "Asia/Yangon";
+      const isDefaultCurrency = !profile.currency || profile.currency === "MMK";
+
+      if (isDefaultTimezone || isDefaultCurrency) {
+        await supabase
+          .from("profiles")
+          .update({
+            timezone: isDefaultTimezone ? browserTimezone : profile.timezone,
+            currency: isDefaultCurrency ? browserCurrency : profile.currency,
+          })
+          .eq("id", user!.id);
+
+        // Return updated values
+        return {
+          ...profile,
+          email: user!.email,
+          timezone: isDefaultTimezone ? browserTimezone : profile.timezone,
+          currency: isDefaultCurrency ? browserCurrency : profile.currency,
+        } as Profile & { email: string };
+      }
 
       return {
         ...profile,

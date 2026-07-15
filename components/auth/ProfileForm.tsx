@@ -33,33 +33,50 @@ export default function ProfileForm() {
     register,
     handleSubmit,
     reset,
-    setValue,
     watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
   });
 
+  // Auto-sync currency when timezone changes
+  const watchTimezone = watch("timezone");
+  useEffect(() => {
+    if (watchTimezone) {
+      const detectedCurrency = getCurrencyFromTimezone(watchTimezone);
+      setValue("currency", detectedCurrency, { shouldDirty: true });
+    }
+  }, [watchTimezone, setValue]);
+
   useEffect(() => {
     if (profile) {
-      // Auto-detect only if profile has never been set (empty/null values)
-      const needsDetectTimezone = !profile.timezone;
-      const needsDetectCurrency = !profile.currency;
-
       const browserTimezone = detectTimezone();
       const browserCurrency = getCurrencyFromTimezone(browserTimezone);
 
+      // Use detected values if profile still has default values
+      const isDefaultTimezone = !profile.timezone || profile.timezone === "Asia/Yangon";
+      const isDefaultCurrency = !profile.currency || profile.currency === "MMK";
+
+      const newTimezone = isDefaultTimezone ? browserTimezone : profile.timezone;
+      const newCurrency = isDefaultCurrency ? browserCurrency : profile.currency;
+
+      // Set values and track if anything changed from database
       reset({
         display_name: profile.display_name,
         daily_calorie_target: profile.daily_calorie_target,
         monthly_budget_goal: profile.monthly_budget_goal,
-        currency: needsDetectCurrency ? browserCurrency : profile.currency,
-        timezone: needsDetectTimezone ? browserTimezone : profile.timezone,
+        currency: newCurrency,
+        timezone: newTimezone,
       });
 
-      // Mark dirty if auto-detected values differ from stored
-      if (needsDetectCurrency) setValue("currency", browserCurrency, { shouldDirty: true });
-      if (needsDetectTimezone) setValue("timezone", browserTimezone, { shouldDirty: true });
+      // If we auto-detected new values, mark form as dirty so user can save
+      if (isDefaultTimezone || isDefaultCurrency) {
+        setTimeout(() => {
+          setValue("currency", newCurrency, { shouldDirty: true });
+          setValue("timezone", newTimezone, { shouldDirty: true });
+        }, 0);
+      }
     }
   }, [profile, reset, setValue]);
 
