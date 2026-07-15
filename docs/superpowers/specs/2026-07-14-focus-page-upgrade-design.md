@@ -74,8 +74,8 @@ interface DetectionResult {
 | 30-40 seconds | Continuous absence OR phone usage | Alarm sound + on-screen warning message |
 | 2 minutes | Continuous absence | Send email warning + persistent alarm |
 
-- The 30-40s threshold is configurable (default: 35 seconds)
-- The 2-minute email threshold is fixed
+- The absence/phone threshold is hardcoded at **35 seconds** for the demo (simple constant in `focus/page.tsx`, easy to adjust)
+- The 2-minute email threshold is hardcoded at **120 seconds**
 - Alert cooldown: 20 seconds between repeated alerts of the same type
 
 ### 3.3 Escalating Alerts
