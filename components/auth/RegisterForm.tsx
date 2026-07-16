@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, type RegisterFormData } from "@/lib/validations";
 import { useRegister } from "@/hooks/useAuth";
-import { UserPlus, Eye, EyeOff, Loader2 } from "lucide-react";
+import { UserPlus, Eye, EyeOff, Loader2, MailCheck } from "lucide-react";
 import Link from "next/link";
 
 export default function RegisterForm() {
@@ -23,6 +23,31 @@ export default function RegisterForm() {
   const onSubmit = (data: RegisterFormData) => {
     register.mutate(data);
   };
+
+  if (register.isSuccess) {
+    return (
+      <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-8">
+        <div className="flex flex-col items-center text-center">
+          <div className="bg-green-500/20 border border-green-500/30 rounded-full p-4 mb-4">
+            <MailCheck size={32} className="text-green-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Check your email
+          </h2>
+          <p className="text-white/60 text-sm mb-6">
+            We sent a confirmation link to your email. Click the link to verify
+            your account and sign in.
+          </p>
+          <Link
+            href="/login"
+            className="text-sm text-[#c9a96e] hover:text-[#8b6914] transition-colors"
+          >
+            Back to sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-8">

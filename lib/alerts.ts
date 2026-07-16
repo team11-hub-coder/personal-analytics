@@ -53,6 +53,77 @@ export function playAlertSound(type: "warning" | "danger" | "critical") {
   }
 }
 
+export function playSongAlert(type: "focus" | "break") {
+  if (!audioCtx) return;
+
+  // Resume if suspended (browser autoplay policy)
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+
+  const now = audioCtx.currentTime;
+
+  if (type === "focus") {
+    // Joyful, rewarding ascending melody
+    const notes = [
+      { freq: 261.63, delay: 0.0, duration: 0.3 },  // C4
+      { freq: 329.63, delay: 0.15, duration: 0.3 }, // E4
+      { freq: 392.00, delay: 0.3, duration: 0.3 },  // G4
+      { freq: 523.25, delay: 0.45, duration: 0.3 }, // C5
+      { freq: 659.25, delay: 0.6, duration: 0.3 },  // E5
+      { freq: 783.99, delay: 0.75, duration: 0.3 }, // G5
+      { freq: 1046.50, delay: 0.9, duration: 0.8 }, // C6
+    ];
+
+    notes.forEach(({ freq, delay, duration }) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now + delay);
+
+      // Smooth volume envelope
+      gain.gain.setValueAtTime(0, now + delay);
+      gain.gain.linearRampToValueAtTime(0.2, now + delay + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + duration);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now + delay);
+      osc.stop(now + delay + duration);
+    });
+  } else {
+    // Calming, gentle descending melody for break completion
+    const notes = [
+      { freq: 523.25, delay: 0.0, duration: 0.4 },  // C5
+      { freq: 440.00, delay: 0.2, duration: 0.4 },  // A4
+      { freq: 392.00, delay: 0.4, duration: 0.4 },  // G4
+      { freq: 349.23, delay: 0.6, duration: 0.4 },  // F4
+      { freq: 329.63, delay: 0.8, duration: 0.4 },  // E4
+      { freq: 261.63, delay: 1.0, duration: 0.8 },  // C4
+    ];
+
+    notes.forEach(({ freq, delay, duration }) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "triangle"; // softer timbre
+      osc.frequency.setValueAtTime(freq, now + delay);
+
+      gain.gain.setValueAtTime(0, now + delay);
+      gain.gain.linearRampToValueAtTime(0.15, now + delay + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + duration);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now + delay);
+      osc.stop(now + delay + duration);
+    });
+  }
+}
+
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!("Notification" in window)) return false;
   if (Notification.permission === "granted") return true;

@@ -5,6 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { useTransactions } from "@/hooks/useExpenses";
+import { useWorkouts } from "@/hooks/useWorkouts";
+import { useTasks } from "@/hooks/useTasks";
+import { useReminders } from "@/hooks/useReminders";
 import { button, card, pageHeader } from "@/lib/theme";
 import { User, Save, Target, Loader2, Globe } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,14 +33,28 @@ export default function ProfileForm() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
   });
 
+  // Auto-sync currency when timezone changes
+  const watchTimezone = watch("timezone");
+  useEffect(() => {
+    if (watchTimezone) {
+      const detectedCurrency = getCurrencyFromTimezone(watchTimezone);
+      setValue("currency", detectedCurrency, { shouldDirty: true });
+    }
+  }, [watchTimezone, setValue]);
+
   useEffect(() => {
     if (profile) {
-      // Detect timezone from browser
+      // Auto-detect only if profile has never been set (empty/null values)
+      const needsDetectTimezone = !profile.timezone;
+      const needsDetectCurrency = !profile.currency;
+
       const browserTimezone = detectTimezone();
       const browserCurrency = getCurrencyFromTimezone(browserTimezone);
 
@@ -44,15 +62,30 @@ export default function ProfileForm() {
       const isDefaultTimezone = !profile.timezone || profile.timezone === "Asia/Yangon";
       const isDefaultCurrency = !profile.currency || profile.currency === "MMK";
 
+      const newTimezone = isDefaultTimezone ? browserTimezone : profile.timezone;
+      const newCurrency = isDefaultCurrency ? browserCurrency : profile.currency;
+
+      // Set values and track if anything changed from database
       reset({
         display_name: profile.display_name,
         daily_calorie_target: profile.daily_calorie_target,
         monthly_budget_goal: profile.monthly_budget_goal,
-        currency: isDefaultCurrency ? browserCurrency : profile.currency,
-        timezone: isDefaultTimezone ? browserTimezone : profile.timezone,
+        currency: newCurrency,
+        timezone: newTimezone,
       });
+
+      // If we auto-detected new values, mark form as dirty so user can save
+      if (isDefaultTimezone || isDefaultCurrency) {
+        setTimeout(() => {
+          setValue("currency", newCurrency, { shouldDirty: true });
+          setValue("timezone", newTimezone, { shouldDirty: true });
+        }, 0);
+      }
     }
-  }, [profile, reset]);
+  }, [profile, reset, setValue]);
+
+  const watchedCurrency = watch("currency");
+  const watchedTimezone = watch("timezone");
 
   const onSubmit = (data: ProfileFormData) => {
     updateProfile.mutate(data, {
@@ -116,7 +149,7 @@ export default function ProfileForm() {
               />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--color-text)]">
+              <h2 className="text-base font-semibold text-[var(--color-text)]">
                 {profile?.display_name || "User"}
               </h2>
               <p className="text-sm text-[var(--color-text-secondary)]">
@@ -236,7 +269,7 @@ export default function ProfileForm() {
                     ))}
                   </select>
                   <p className="text-xs text-green-600 mt-1">
-                    ✓ Detected: {getCurrencyFromTimezone(detectTimezone())}
+                    ✓ Current: {watchedCurrency} — {currencies.find((c) => c.code === watchedCurrency)?.name}
                   </p>
                 </div>
                 <div>
@@ -254,7 +287,7 @@ export default function ProfileForm() {
                     ))}
                   </select>
                   <p className="text-xs text-green-600 mt-1">
-                    ✓ Detected: {detectTimezone()}
+                    ✓ Current: {timezones.find((t) => t.value === watchedTimezone)?.label || watchedTimezone}
                   </p>
                 </div>
               </div>
@@ -288,13 +321,20 @@ export default function ProfileForm() {
 }
 
 function ProgressStats() {
-  // These would come from separate queries in a real app
-  // For now, showing the structure
+  const { data: transactions = [] } = useTransactions();
+  const { data: workoutResult } = useWorkouts(1000);
+  const { data: tasks = [] } = useTasks();
+  const { data: reminders = [] } = useReminders();
+
+  const workouts = workoutResult?.data ?? [];
+  const completedTasks = tasks.filter((t) => t.status === "completed").length;
+  const activeReminders = reminders.filter((r) => r.is_active).length;
+
   const stats = [
-    { label: "Transactions logged", value: "—" },
-    { label: "Workouts completed", value: "—" },
-    { label: "Tasks done", value: "—" },
-    { label: "Active reminders", value: "—" },
+    { label: "Transactions logged", value: transactions.length.toLocaleString() },
+    { label: "Workouts completed", value: workouts.length.toLocaleString() },
+    { label: "Tasks done", value: completedTasks.toLocaleString() },
+    { label: "Active reminders", value: activeReminders.toLocaleString() },
   ];
 
   return (
@@ -308,7 +348,7 @@ function ProgressStats() {
             key={stat.label}
             className="p-4 bg-[var(--color-surface-hover)] rounded-lg text-center"
           >
-            <p className="text-2xl font-bold text-[var(--color-text)]">
+            <p className="text-xl font-bold text-[var(--color-text)]">
               {stat.value}
             </p>
             <p className="text-xs text-[var(--color-text-secondary)]">

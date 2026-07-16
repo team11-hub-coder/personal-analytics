@@ -8,7 +8,7 @@ import {
   useToggleTaskStatus,
   useTaskCategories,
 } from "@/hooks/useTasks";
-import { card, button, list, priorityColors, taskColors } from "@/lib/theme";
+import { card, list, taskColors, priorityColors } from "@/lib/theme";
 import {
   Pencil,
   Trash2,
@@ -23,6 +23,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import TaskFormModal from "./task-form-modal";
 import type { TaskWithCategory } from "@/types";
+import { daysFromToday } from "@/lib/dates";
 
 type StatusFilter = "all" | "pending" | "completed" | "overdue";
 type SortBy = "priority" | "due_date" | "created_at";
@@ -70,14 +71,12 @@ export default function TaskList() {
 
   const isOverdue = (task: TaskWithCategory) => {
     if (task.status === "completed" || !task.due_date) return false;
-    return new Date(task.due_date) < new Date(new Date().toDateString());
+    return daysFromToday(task.due_date) < 0;
   };
 
   const formatDueDate = (date: string | null) => {
     if (!date) return null;
-    const due = new Date(date);
-    const today = new Date(new Date().toDateString());
-    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = daysFromToday(date);
 
     if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`;
     if (diffDays === 0) return "Due today";

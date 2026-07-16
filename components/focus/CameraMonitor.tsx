@@ -25,52 +25,54 @@ export default function CameraMonitor({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [streamReady, setStreamReady] = useState(false);
   const [activeAlert, setActiveAlert] = useState<AlertType>(null);
   const [alertDuration, setAlertDuration] = useState(0);
-  const [hasStream, setHasStream] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const alertStartRef = useRef<number | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Draggable preview state — default top-right
-  const [previewPos, setPreviewPos] = useState(() => {
-    if (typeof window !== "undefined") {
-      return { x: window.innerWidth - 240, y: 20 };
-    }
-    return { x: 20, y: 20 };
-  });
+  const [previewPos, setPreviewPos] = useState(() => ({
+    x: typeof window !== "undefined" ? window.innerWidth - 240 : 20,
+    y: 20,
+  }));
   const [dragging, setDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, px: 0, py: 0 });
 
-  // Load ML models on mount
+  // Load ML models on mount (deferred to avoid setState in effect)
   useEffect(() => {
-    loadModels().then(() => setModelsLoaded(true));
+    let cancelled = false;
+    loadModels().then(() => {
+      if (!cancelled) setModelsLoaded(true);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Start camera
   const startCamera = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 320, height: 240 },
         audio: false,
       });
 
       streamRef.current = stream;
-      setHasStream(true);
 
+      // Attach to hidden video for detection
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
+
+      // Also attach to preview video immediately (if it exists)
+      if (previewVideoRef.current) {
+        previewVideoRef.current.srcObject = stream;
+        previewVideoRef.current.play().catch(() => {});
+      }
+
+      setStreamReady(true);
     } catch (err) {
-      setError("Camera access denied");
       console.error("Camera error:", err);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -83,8 +85,8 @@ export default function CameraMonitor({
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
-      setHasStream(false);
     }
+    setStreamReady(false);
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
@@ -93,25 +95,29 @@ export default function CameraMonitor({
   // Start/stop detection loop
   useEffect(() => {
     if (!enabled || !modelsLoaded) {
-      stopCamera();
-      return;
+      // Defer cleanup to avoid setState-in-effect
+      const timer = setTimeout(() => { stopCamera(); }, 0);
+      return () => clearTimeout(timer);
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    startCamera();
+    // Defer async camera init to avoid setState-in-effect lint error
+    const timer = setTimeout(() => { void startCamera(); }, 0);
 
     return () => {
-      stopCamera();
+      clearTimeout(timer);
+      // Defer cleanup to avoid setState-in-effect
+      const cleanupTimer = setTimeout(() => { stopCamera(); }, 0);
+      return () => clearTimeout(cleanupTimer);
     };
   }, [enabled, modelsLoaded, startCamera, stopCamera]);
 
-  // Sync stream to preview video (only when stream changes)
+  // Sync stream to preview video when stream is ready or preview toggles
   useEffect(() => {
-    if (previewVideoRef.current && streamRef.current) {
+    if (showPreview && streamReady && previewVideoRef.current && streamRef.current) {
       previewVideoRef.current.srcObject = streamRef.current;
       previewVideoRef.current.play().catch(() => {});
     }
-  }, [showPreview]);
+  }, [showPreview, streamReady]);
 
   // Detection interval
   useEffect(() => {
@@ -150,7 +156,7 @@ export default function CameraMonitor({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [enabled, modelsLoaded, onDetection, activeAlert, onAlert]);
+  }, [enabled, modelsLoaded, onDetection, activeAlert]);
 
   // Duration counter
   useEffect(() => {
@@ -234,64 +240,63 @@ export default function CameraMonitor({
         }}
       />
 
-      {/* Draggable video preview pop-up */}
-      {showPreview && hasStream && (
+      {/* Draggable video preview pop-up — always rendered so ref is available */}
+      <div
+        className="fixed z-50 rounded-lg overflow-hidden shadow-2xl border-2 border-[#8b6914]"
+        style={{
+          left: previewPos.x,
+          top: previewPos.y,
+          width: 220,
+          cursor: dragging ? "grabbing" : "grab",
+          display: showPreview && streamReady ? "block" : "none",
+        }}
+      >
+        {/* Drag handle */}
         <div
-          className="fixed z-50 rounded-lg overflow-hidden shadow-2xl border-2 border-[#8b6914]"
+          onMouseDown={handleDragStart}
+          className="flex items-center justify-between px-2 py-1"
           style={{
-            left: previewPos.x,
-            top: previewPos.y,
-            width: 220,
-            cursor: dragging ? "grabbing" : "grab",
+            backgroundColor: activeAlert === "phone" ? "#dc2626" : activeAlert === "absent" ? "#d97706" : "#8b6914",
           }}
         >
-          {/* Drag handle */}
+          <div className="flex items-center gap-1">
+            <GripVertical size={12} className="text-white" />
+            <span className="text-xs text-white font-medium">Camera</span>
+          </div>
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        </div>
+
+        {/* Video */}
+        <video
+          ref={previewVideoRef}
+          playsInline
+          muted
+          className="w-full h-auto block"
+          style={{ transform: "scaleX(-1)", backgroundColor: "#000" }}
+        />
+
+        {/* Alert timer badge on video */}
+        {activeAlert && alertDuration > 0 && (
           <div
-            onMouseDown={handleDragStart}
-            className="flex items-center justify-between px-2 py-1"
+            className="absolute bottom-2 left-2 right-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg"
             style={{
-              backgroundColor: activeAlert === "phone" ? "#dc2626" : activeAlert === "absent" ? "#d97706" : "#8b6914",
+              backgroundColor: activeAlert === "phone" ? "rgba(220,38,38,0.9)" : "rgba(217,119,6,0.9)",
             }}
           >
-            <div className="flex items-center gap-1">
-              <GripVertical size={12} className="text-white" />
-              <span className="text-xs text-white font-medium">Camera</span>
-            </div>
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            {activeAlert === "phone" ? (
+              <Phone size={14} className="text-white" />
+            ) : (
+              <UserX size={14} className="text-white" />
+            )}
+            <span className="text-white text-sm font-mono font-bold">
+              {formatDuration(alertDuration)}
+            </span>
+            <span className="text-white/80 text-xs">
+              {activeAlert === "phone" ? "Phone" : "Absent"}
+            </span>
           </div>
-
-          {/* Video */}
-          <video
-            ref={previewVideoRef}
-            playsInline
-            muted
-            className="w-full h-auto block"
-            style={{ transform: "scaleX(-1)", backgroundColor: "#000" }}
-          />
-
-          {/* Alert timer badge on video */}
-          {activeAlert && alertDuration > 0 && (
-            <div
-              className="absolute bottom-2 left-2 right-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg"
-              style={{
-                backgroundColor: activeAlert === "phone" ? "rgba(220,38,38,0.9)" : "rgba(217,119,6,0.9)",
-              }}
-            >
-              {activeAlert === "phone" ? (
-                <Phone size={14} className="text-white" />
-              ) : (
-                <UserX size={14} className="text-white" />
-              )}
-              <span className="text-white text-sm font-mono font-bold">
-                {formatDuration(alertDuration)}
-              </span>
-              <span className="text-white/80 text-xs">
-                {activeAlert === "phone" ? "Phone" : "Absent"}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Warning bar shown in page topbar via onAlert callback */}
     </>

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
+import { detectTimezone, getCurrencyFromTimezone } from "@/lib/currency";
 import type { Profile } from "@/types";
 
 // Helper to get authenticated user or throw
@@ -37,15 +38,17 @@ export function useProfile() {
         .eq("id", user!.id)
         .single();
 
-      // If profile doesn't exist, create it
+      // If profile doesn't exist, create it with auto-detected timezone & currency
       if (profileErr && profileErr.code === "PGRST116") {
+        const browserTimezone = detectTimezone();
+        const browserCurrency = getCurrencyFromTimezone(browserTimezone);
         const { data: newProfile, error: createErr } = await supabase
           .from("profiles")
           .insert({
             id: user!.id,
             display_name: user!.email?.split("@")[0] || "User",
-            currency: "MMK",
-            timezone: "Asia/Yangon",
+            currency: browserCurrency,
+            timezone: browserTimezone,
           })
           .select()
           .single();
@@ -58,6 +61,30 @@ export function useProfile() {
       }
 
       if (profileErr) throw profileErr;
+
+      // Auto-update if profile still has default values (from trigger)
+      const browserTimezone = detectTimezone();
+      const browserCurrency = getCurrencyFromTimezone(browserTimezone);
+      const isDefaultTimezone = !profile.timezone || profile.timezone === "Asia/Yangon";
+      const isDefaultCurrency = !profile.currency || profile.currency === "MMK";
+
+      if (isDefaultTimezone || isDefaultCurrency) {
+        await supabase
+          .from("profiles")
+          .update({
+            timezone: isDefaultTimezone ? browserTimezone : profile.timezone,
+            currency: isDefaultCurrency ? browserCurrency : profile.currency,
+          })
+          .eq("id", user!.id);
+
+        // Return updated values
+        return {
+          ...profile,
+          email: user!.email,
+          timezone: isDefaultTimezone ? browserTimezone : profile.timezone,
+          currency: isDefaultCurrency ? browserCurrency : profile.currency,
+        } as Profile & { email: string };
+      }
 
       return {
         ...profile,

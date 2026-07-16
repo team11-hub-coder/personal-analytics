@@ -22,7 +22,7 @@ export default function FinancePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[var(--color-text)]">
+        <h1 className="text-xl font-bold text-[var(--color-text)]">
           Finance Tracker
         </h1>
         <p className="text-[var(--color-text-secondary)] mt-1">

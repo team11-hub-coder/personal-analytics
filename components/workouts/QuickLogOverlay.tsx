@@ -23,6 +23,12 @@ export interface QuickLogData {
   distance_km: number | null;
   calories: number | null;
   notes: string;
+  date: string;
+}
+
+function getTodayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export default function QuickLogOverlay({ open, onClose, onSave }: QuickLogOverlayProps) {
@@ -38,8 +44,8 @@ export default function QuickLogOverlay({ open, onClose, onSave }: QuickLogOverl
   const [weight, setWeight] = useState<number | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
-  const [calories, setCalories] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
+  const [workoutDate, setWorkoutDate] = useState<string>(getTodayString());
 
   if (!open) return null;
 
@@ -59,8 +65,9 @@ export default function QuickLogOverlay({ open, onClose, onSave }: QuickLogOverl
       weight,
       duration_min: duration,
       distance_km: distance,
-      calories,
+      calories: null,
       notes,
+      date: workoutDate,
     });
     setSaving(false);
     setSaved(true);
@@ -79,8 +86,8 @@ export default function QuickLogOverlay({ open, onClose, onSave }: QuickLogOverl
     setWeight(null);
     setDuration(null);
     setDistance(null);
-    setCalories(null);
     setNotes("");
+    setWorkoutDate(getTodayString());
     onClose();
   };
 
@@ -100,7 +107,7 @@ export default function QuickLogOverlay({ open, onClose, onSave }: QuickLogOverl
       >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
-          <h2 className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
+          <h2 className="text-base font-bold" style={{ color: "var(--color-text)" }}>
             {step === "pick" ? "Choose Exercise" : selectedExercise}
           </h2>
           <button onClick={handleClose} className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)]">
@@ -123,10 +130,22 @@ export default function QuickLogOverlay({ open, onClose, onSave }: QuickLogOverl
               {saved ? (
                 <div className="flex items-center justify-center gap-2 py-8">
                   <Check size={24} className="text-emerald-500" />
-                  <span className="text-lg font-medium text-emerald-500">Saved!</span>
+                  <span className="text-base font-medium text-emerald-500">Saved!</span>
                 </div>
               ) : (
                 <>
+                  {/* Workout Date (optional) */}
+                  <div className="space-y-1">
+                    <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Workout Date (optional)</Label>
+                    <input
+                      type="date"
+                      value={workoutDate}
+                      onChange={(e) => setWorkoutDate(e.target.value)}
+                      className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
+                      style={{ color: "var(--color-text)", backgroundColor: "var(--color-bg)" }}
+                    />
+                  </div>
+
                   {/* Strength fields */}
                   {!isCardio && (
                     <div className="grid grid-cols-3 gap-3">
@@ -159,16 +178,10 @@ export default function QuickLogOverlay({ open, onClose, onSave }: QuickLogOverl
                     </div>
                   )}
 
-                  {/* Optional fields */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Calories</Label>
-                      <Input type="number" min={0} value={calories ?? ""} onChange={(e) => setCalories(Number(e.target.value) || null)} placeholder="-" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Notes</Label>
-                      <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
-                    </div>
+                  {/* Notes */}
+                  <div className="space-y-1">
+                    <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Notes</Label>
+                    <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
                   </div>
 
                   {/* Actions */}

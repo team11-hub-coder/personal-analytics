@@ -22,7 +22,7 @@ export default function TasksPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[var(--color-text)]">
+        <h1 className="text-xl font-bold text-[var(--color-text)]">
           Task Manager
         </h1>
         <p className="text-[var(--color-text-secondary)] mt-1">

@@ -5,6 +5,28 @@ function getClient() {
   return createClient();
 }
 
+// ─── Local Timezone Helpers ──────────────────────────────────
+
+/**
+ * Get current time as ISO string in local timezone.
+ * Avoids UTC offset issues (e.g., Myanmar UTC+6.30).
+ */
+export function getLocalISOString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  const ms = String(now.getMilliseconds()).padStart(3, "0");
+  const offset = -now.getTimezoneOffset();
+  const offsetHours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0");
+  const offsetMinutes = String(Math.abs(offset) % 60).padStart(2, "0");
+  const offsetSign = offset >= 0 ? "+" : "-";
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}${offsetSign}${offsetHours}:${offsetMinutes}`;
+}
+
 function isTableMissing(error: { code?: string; message?: string }): boolean {
   // Empty error object (404 from Supabase REST) means the table doesn't exist
   if (!error.code && !error.message) return true;
@@ -104,7 +126,6 @@ export async function updateFocusSession(
 export async function incrementCompletedCount(id: string): Promise<boolean> {
   const supabase = getClient();
 
-  // Read current count
   const { data, error: readError } = await supabase
     .from("focus_sessions")
     .select("completed_count")
@@ -116,7 +137,6 @@ export async function incrementCompletedCount(id: string): Promise<boolean> {
     return false;
   }
 
-  // Increment and save
   const newCount = (data?.completed_count ?? 0) + 1;
   const { error: updateError } = await supabase
     .from("focus_sessions")

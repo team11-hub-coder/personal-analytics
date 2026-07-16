@@ -278,7 +278,7 @@ export default function FocusHistory({ onReuseSession, onNewSession, refreshKey 
           >
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
-              <h2 className="text-lg font-bold" style={{ color: "var(--color-text)" }}>Edit Session</h2>
+              <h2 className="text-base font-bold" style={{ color: "var(--color-text)" }}>Edit Session</h2>
               <button onClick={() => setEditingSession(null)} className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)]">
                 <span style={{ color: "var(--color-text-secondary)" }}>✕</span>
               </button>

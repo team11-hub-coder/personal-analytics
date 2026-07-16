@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ExpenseForm from "./expense-form";
+import { getLocalDateString } from "@/lib/dates";
 
 export default function ExpenseList() {
   const { data: transactions, isLoading, error } = useTransactions();
@@ -361,19 +362,23 @@ function GroupedTransactions({
   const sortedDates = Object.keys(groupedByDate).sort().reverse();
 
   const formatDateHeader = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
+    const today = getLocalDateString();
+    const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getLocalDateString(yesterday);
 
-    if (date.toDateString() === today.toDateString()) return "Today";
-    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+    if (dateStr === today) return "Today";
+    if (dateStr === yesterdayStr) return "Yesterday";
+
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    const currentYear = new Date().getFullYear();
 
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
-      year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
+      year: year !== currentYear ? "numeric" : undefined,
     });
   };
 
@@ -557,7 +562,7 @@ function ExpenseItem({
             <div>
               <input
                 type="number"
-                step="1"
+                step="0.01"
                 {...register("amount", { valueAsNumber: true })}
                 className="border border-[var(--color-border)] rounded px-2 py-1 text-sm"
               />
@@ -608,7 +613,7 @@ function ExpenseItem({
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getCategoryIconDisplay(transaction.categories?.icon ?? null).color}`}>
           {(() => {
             const IconComp = getCategoryIconDisplay(transaction.categories?.icon ?? null).icon;
-            return <IconComp size={14} />;
+            return <IconComp size={16} />;
           })()}
         </div>
         <div className="flex items-center gap-2">
@@ -627,7 +632,7 @@ function ExpenseItem({
             onClick={() => setIsEditing(true)}
             className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
           >
-            <Pencil size={12} />
+            <Pencil size={16} />
           </button>
           <button
             onClick={handleDelete}
@@ -635,9 +640,9 @@ function ExpenseItem({
             className="p-1 text-[var(--color-text-muted)] hover:text-red-500"
           >
             {deleteTransaction.isPending ? (
-              <Loader2 size={12} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <Trash2 size={12} />
+              <Trash2 size={16} />
             )}
           </button>
         </div>

@@ -6,6 +6,7 @@ import { useCreateRecurringTemplate } from "@/hooks/useRecurringTemplates";
 import { useCategories } from "@/hooks/useCategories";
 import { recurringTemplateSchema, type RecurringTemplateFormData } from "@/lib/validations";
 import { button } from "@/lib/theme";
+import { getLocalDateString } from "@/lib/dates";
 import { Plus, Loader2, X } from "lucide-react";
 
 interface RecurringTemplateFormProps {
@@ -29,7 +30,7 @@ export default function RecurringTemplateForm({
     resolver: zodResolver(recurringTemplateSchema),
     defaultValues: {
       interval: "monthly",
-      next_run_date: new Date().toISOString().split("T")[0],
+      next_run_date: getLocalDateString(),
     },
   });
 
@@ -62,7 +63,7 @@ export default function RecurringTemplateForm({
           </label>
           <input
             type="number"
-            step="1"
+            step="0.01"
             min="0"
             {...register("amount", { valueAsNumber: true })}
             placeholder="0"

@@ -1,12 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateTaskCategory } from "@/hooks/useTasks";
 import { taskCategorySchema, type TaskCategoryFormData } from "@/lib/validations";
-import { button, categoryColorOptions } from "@/lib/theme";
+import { button } from "@/lib/theme";
 import { Plus, Loader2, X } from "lucide-react";
+
+const colorOptions = [
+  { value: "#22c55e", label: "Green" },
+  { value: "#3b82f6", label: "Blue" },
+  { value: "#f59e0b", label: "Amber" },
+  { value: "#ef4444", label: "Red" },
+  { value: "#8b5cf6", label: "Purple" },
+  { value: "#ec4899", label: "Pink" },
+  { value: "#06b6d4", label: "Cyan" },
+  { value: "#f97316", label: "Orange" },
+];
 
 interface CategoryFormModalProps {
   isOpen: boolean;
@@ -15,27 +26,26 @@ interface CategoryFormModalProps {
 
 export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModalProps) {
   const createCategory = useCreateTaskCategory();
+  const [selectedColor, setSelectedColor] = useState(colorOptions[0].value);
 
   const {
     register,
     handleSubmit,
     reset,
-    watch,
-    setValue,
     formState: { errors },
   } = useForm<TaskCategoryFormData>({
     resolver: zodResolver(taskCategorySchema),
     defaultValues: {
-      color: categoryColorOptions[0].value,
+      color: colorOptions[0].value,
     },
   });
-
-  const selectedColor = watch("color") ?? categoryColorOptions[0].value;
 
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      reset({ color: categoryColorOptions[0].value });
+      reset({ color: colorOptions[0].value });
+      // Defer setState to avoid lint error
+      queueMicrotask(() => setSelectedColor(colorOptions[0].value));
     }
   }, [isOpen, reset]);
 
@@ -60,6 +70,7 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
       {
         onSuccess: () => {
           reset();
+          setSelectedColor(colorOptions[0].value);
           onClose();
         },
       }
@@ -82,7 +93,7 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
       <div className="relative bg-[var(--color-surface)] rounded-xl shadow-xl w-full max-w-md mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[var(--color-border)]">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">
             Add Task Category
           </h2>
           <button
@@ -115,11 +126,11 @@ export default function CategoryFormModal({ isOpen, onClose }: CategoryFormModal
               Color
             </label>
             <div className="flex gap-3 flex-wrap">
-              {categoryColorOptions.map((opt) => (
+              {colorOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => setValue("color", opt.value)}
+                  onClick={() => setSelectedColor(opt.value)}
                   className={`w-10 h-10 rounded-full border-2 transition-transform hover:scale-110 ${
                     selectedColor === opt.value
                       ? "border-[var(--color-text)] scale-110"

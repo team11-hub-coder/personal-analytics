@@ -48,9 +48,9 @@ export const card = {
 export const statCard = {
   container:
     "bg-(--color-surface) rounded-xl p-5 shadow-sm border border-(--color-border)",
-  iconWrapper: "w-10 h-10 rounded-lg flex items-center justify-center",
-  label: "text-sm text-(--color-text-secondary)",
-  value: "text-xl font-bold text-(--color-text)",
+  iconWrapper: "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+  label: "text-md font-medium text-(--color-text-secondary)",
+  value: "text-base font-bold tracking-tight text-(--color-text)",
 } as const;
 
 // Stat card icon colors
@@ -66,7 +66,7 @@ export const statColors = {
 // Page headers
 export const pageHeader = {
   container: "flex items-center justify-between",
-  title: "text-2xl font-bold text-(--color-text)",
+  title: "text-xl font-bold tracking-tight text-(--color-text)",
   subtitle: "text-(--color-text-secondary) mt-1",
 } as const;
 
@@ -101,7 +101,7 @@ export const sidebar = {
 
 // Section headers
 export const sectionHeader = {
-  title: "font-semibold text-(--color-text)",
+  title: "text-base font-semibold text-(--color-text)",
   subtitle: "text-(--color-text-muted) text-sm",
 } as const;
 
@@ -115,7 +115,7 @@ export const list = {
   item:
     "flex items-center gap-3 text-sm",
   iconCircle: "w-8 h-8 rounded-full flex items-center justify-center",
-  title: "font-medium text-(--color-text) truncate",
+  title: "text-sm font-medium text-(--color-text) truncate",
   subtitle: "text-(--color-text-secondary) text-xs",
   badge: "text-xs px-2 py-0.5 rounded-full",
 } as const;
@@ -126,39 +126,37 @@ export const quickAction = {
   dot: "w-2 h-2 rounded-full",
 } as const;
 
-// Task priority badge colors
-export const priorityColors: Record<"low" | "medium" | "high", string> = {
-  low: "bg-blue-50 text-blue-600",
-  medium: "bg-amber-50 text-amber-600",
-  high: "bg-rose-50 text-rose-600",
+// Quick action dot colors
+export const quickActionColors = {
+  finance: "bg-emerald-500",
+  workouts: "bg-[#8b6914]",
+  tasks: "bg-amber-500",
+  reminders: "bg-rose-500",
 } as const;
-
-// Task semantic colors (overdue, completed states)
-export const taskColors = {
-  overdueBorder: "border-l-4 border-l-rose-500",
-  completedCheck: "text-emerald-500",
-  overdueText: "text-rose-500 font-medium",
-} as const;
-
-// Category color picker options
-export const categoryColorOptions = [
-  { value: "#22c55e", label: "Green" },
-  { value: "#3b82f6", label: "Blue" },
-  { value: "#f59e0b", label: "Amber" },
-  { value: "#ef4444", label: "Red" },
-  { value: "#8b5cf6", label: "Purple" },
-  { value: "#ec4899", label: "Pink" },
-  { value: "#06b6d4", label: "Cyan" },
-  { value: "#f97316", label: "Orange" },
-] as const;
 
 // ─── Chart Colors ──────────────────────────────────────────────
 export const chartColors = [
-  "#8b6914", // gold
-  "#10b981", // emerald
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#c9a96e", // light gold
-  "#06b6d4", // cyan
-  "#d97706", // orange
+  "var(--chart-bar-1)",
+  "var(--chart-bar-2)",
+  "var(--chart-bar-3)",
+  "var(--chart-bar-4)",
+  "var(--chart-bar-5)",
+  "var(--chart-bar-6)",
+  "var(--chart-bar-7)",
 ] as const;
+
+// ─── Task Colors ────────────────────────────────────────────
+export const taskColors = {
+  overdueBorder: "border-l-4 border-red-500",
+  overdueText: "text-red-600",
+  completedCheck: "text-emerald-500",
+  highPriority: "bg-red-100 text-red-700",
+  mediumPriority: "bg-amber-100 text-amber-700",
+  lowPriority: "bg-green-100 text-green-700",
+};
+
+export const priorityColors = {
+  high: "bg-red-100 text-red-700",
+  medium: "bg-amber-100 text-amber-700",
+  low: "bg-green-100 text-green-700",
+};

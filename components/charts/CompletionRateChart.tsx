@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import ChartLine from "./ChartLine";
 import { chartColors } from "@/lib/theme";
+import { getLocalDateString } from "@/lib/dates";
 
 export default function CompletionRateChart() {
   const { data: allTasks } = useTasks();

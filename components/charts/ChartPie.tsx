@@ -61,12 +61,12 @@ export default function ChartPie({
     );
   }
 
-  const defaultTooltip = (v: unknown) => `$${Number(v).toFixed(2)}`;
+  const defaultTooltip = (v: unknown) => `$${Number(v).toLocaleString("en-US")}`;
   const fmt = tooltipFormatter ?? defaultTooltip;
 
   const legendFmt =
     legendFormatter ??
-    ((item: { name: string; value: number }) => `$${item.value.toFixed(2)}`);
+    ((item: { name: string; value: number }) => `$${item.value.toLocaleString("en-US")}`);
 
   const safeColors = colors.length > 0 ? colors : chartColors;
 
@@ -100,7 +100,17 @@ export default function ChartPie({
               />
             ))}
           </Pie>
-          <Tooltip formatter={fmt} />
+          <Tooltip
+            formatter={fmt}
+            contentStyle={{
+              backgroundColor: "var(--chart-tooltip-bg)",
+              color: "var(--chart-tooltip-text)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "8px",
+            }}
+            labelStyle={{ color: "var(--chart-tooltip-text)" }}
+            itemStyle={{ color: "var(--chart-tooltip-text)" }}
+          />
         </PieChart>
       </ResponsiveContainer>
 
