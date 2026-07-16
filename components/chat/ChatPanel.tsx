@@ -158,8 +158,8 @@ export default function ChatPanel({
         error={messagesError?.message || sendError}
         optimisticMessage={optimisticMessage}
         onSuggestionClick={handleSend}
+        scrollRef={messagesEndRef}
       />
-      <div ref={messagesEndRef} />
       <ChatInput
         input={input}
         setInput={setInput}
