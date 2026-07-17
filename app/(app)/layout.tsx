@@ -21,7 +21,7 @@ export default function AppLayout({
   } | null>(null);
 
   return (
-    <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: "var(--color-bg)" }}>
+    <div className="flex h-dvh overflow-hidden bg-(--color-bg)">
       <Sidebar />
 
       {/* Main content — only this column scrolls */}

@@ -1,248 +1,365 @@
-// Object detection — lightweight fallback (TensorFlow removed for Vercel build size)
-// Uses browser FaceDetection API where available, canvas-based skin-tone tracking as fallback.
+// Object detection — MediaPipe Face Detection + YOLOv8-small via ONNX Runtime Web
+// Face: MediaPipe FaceDetector (accurate, fast, cross-browser)
+// Phone/Person: YOLOv8-small ONNX model with WebGL backend
+
+import * as ort from "onnxruntime-web";
+import { FaceDetector, FilesetResolver } from "@mediapipe/tasks-vision";
 
 export interface DetectionResult {
   faceDetected: boolean;
   phoneDetected: boolean;
   faceCount: number;
+  confidence: number;
+  personDetected: boolean;
 }
 
+// ─── Constants ────────────────────────────────────────────────
+
+const YOLO_INPUT_SIZE = 640;
+const CONFIDENCE_THRESHOLD = 0.65;
+const NMS_IOU_THRESHOLD = 0.45;
+const DETECTION_INTERVAL_MS = 1000;
+const CANVAS_WIDTH = 640;
+const CANVAS_HEIGHT = 480;
+
+// YOLO class indices
+const PERSON_CLASS = 0;
+const CELL_PHONE_CLASS = 67;
+
+// Temporal smoothing
+const SLIDING_WINDOW_SIZE = 5;
+const MIN_POSITIVE_FRAMES = 3;
+const CONSECUTIVE_FRAMES_REQUIRED = 2;
+
+// ─── State ────────────────────────────────────────────────────
+
+let yoloSession: ort.InferenceSession | null = null;
+let faceDetector: FaceDetector | null = null;
 let modelsReady = false;
-let useNativeDetection = false;
 let previousFrame: ImageData | null = null;
 let frameCanvas: HTMLCanvasElement | null = null;
 let frameCtx: CanvasRenderingContext2D | null = null;
 
-// Adaptive skin color detection range in HSV
-const SKIN_LOWER = { h: 0, s: 15, v: 35 };
-const SKIN_UPPER = { h: 50, s: 255, v: 255 };
+// Temporal smoothing buffers
+const faceDetectionWindow: boolean[] = [];
+const phoneDetectionWindow: boolean[] = [];
 
-function rgbToHsv(r: number, g: number, b: number) {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  const d = max - min;
-  let h = 0;
-  const s = max === 0 ? 0 : d / max, v = max;
-  if (d !== 0) {
-    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-    else if (max === g) h = ((b - r) / d + 2) / 6;
-    else h = ((r - g) / d + 4) / 6;
+// ─── Model Loading ────────────────────────────────────────────
+
+export async function loadModels(): Promise<void> {
+  // Load MediaPipe Face Detector
+  try {
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+    faceDetector = await FaceDetector.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO",
+      minDetectionConfidence: 0.6,
+      minSuppressionThreshold: 0.3,
+    });
+    console.log("MediaPipe FaceDetector loaded successfully");
+  } catch (err) {
+    console.error("Failed to load MediaPipe FaceDetector:", err);
+    faceDetector = null;
   }
-  return { h: h * 360, s: s * 255, v: v * 255 };
+
+  // Load YOLOv8-nano ONNX model for phone/person detection
+  try {
+    ort.env.wasm.numThreads = 1;
+
+    const modelPath = "/models/yolov8n.onnx";
+    yoloSession = await ort.InferenceSession.create(modelPath, {
+      executionProviders: ["wasm"],
+    });
+    console.log("YOLOv8-nano model loaded successfully");
+  } catch (err) {
+    console.warn("YOLO model failed to load (face detection still works):", err);
+    yoloSession = null;
+  }
+
+  // Mark ready if at least one model loaded
+  modelsReady = faceDetector !== null || yoloSession !== null;
 }
 
-function isSkinColor(r: number, g: number, b: number): boolean {
-  // 1. RGB skin color rule (Peer et al. / Kovac et al. - highly adaptive for skin tones)
-  const isSkinRGB = 
-    r > 80 && g > 30 && b > 15 && 
-    Math.max(r, g, b) - Math.min(r, g, b) > 10 && 
-    Math.abs(r - g) > 10 && r > g && r > b;
+// ─── Frame Preprocessing for YOLO ─────────────────────────────
 
-  // 2. HSV skin color rule (broadened for dim indoor lighting)
-  const hsv = rgbToHsv(r, g, b);
-  const isSkinHSV = 
-    hsv.h >= SKIN_LOWER.h && hsv.h <= SKIN_UPPER.h &&
-    hsv.s >= SKIN_LOWER.s && hsv.s <= SKIN_UPPER.s &&
-    hsv.v >= SKIN_LOWER.v && hsv.v <= SKIN_UPPER.v;
+function preprocessFrame(imageData: ImageData): ort.Tensor {
+  const { data, width, height } = imageData;
 
-  return isSkinRGB || isSkinHSV;
-}
+  // Create RGB tensor [1, 3, 640, 640]
+  const input = new Float32Array(1 * 3 * YOLO_INPUT_SIZE * YOLO_INPUT_SIZE);
 
-function detectPhoneHeuristic(
-  video: HTMLVideoElement,
-  faceDetected: boolean,
-  skinBoundingBox: { minX: number; maxX: number; minY: number; maxY: number } | null,
-  data: Uint8ClampedArray,
-  w: number,
-  h: number
-): boolean {
-  if (!faceDetected || !skinBoundingBox) return false;
+  // Resize and normalize
+  const ratio = Math.min(YOLO_INPUT_SIZE / width, YOLO_INPUT_SIZE / height);
+  const newWidth = Math.round(width * ratio);
+  const newHeight = Math.round(height * ratio);
+  const offsetX = Math.round((YOLO_INPUT_SIZE - newWidth) / 2);
+  const offsetY = Math.round((YOLO_INPUT_SIZE - newHeight) / 2);
 
-  const { minX, maxX, minY, maxY } = skinBoundingBox;
-  const boxW = maxX - minX;
-  const boxH = maxY - minY;
+  for (let y = 0; y < YOLO_INPUT_SIZE; y++) {
+    for (let x = 0; x < YOLO_INPUT_SIZE; x++) {
+      const srcX = Math.floor((x - offsetX) / ratio);
+      const srcY = Math.floor((y - offsetY) / ratio);
 
-  if (boxW < 20 || boxH < 20) return false;
+      if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
+        const srcIdx = (srcY * width + srcX) * 4;
+        const r = data[srcIdx] / 255.0;
+        const g = data[srcIdx + 1] / 255.0;
+        const b = data[srcIdx + 2] / 255.0;
 
-  // Heuristic 1: Wide aspect ratio of the skin region
-  // Usually, a face/head bounding box is vertical (ratio around 0.6 - 1.1).
-  // If the user is holding a phone near the head/ear, or holding a hand/arm up, the skin bounding box gets wider (aspect ratio > 1.25).
-  const aspectRatio = boxW / boxH;
-
-  // Heuristic 2: Count high-contrast edges and dark non-skin pixels within the skin bounding box.
-  // Phones are typically dark/rectangular (low brightness casing) or display high-contrast edges.
-  let darkNonSkinPixels = 0;
-  let totalBoxPixels = 0;
-  let horizontalEdges = 0;
-  let verticalEdges = 0;
-
-  for (let y = minY; y < maxY; y++) {
-    for (let x = minX; x < maxX; x++) {
-      const i = (y * w + x) * 4;
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      const isSkin = isSkinColor(r, g, b);
-      totalBoxPixels++;
-
-      if (!isSkin) {
-        // Phone body: usually dark (low brightness casing)
-        const brightness = (r + g + b) / 3;
-        if (brightness < 60) {
-          darkNonSkinPixels++;
-        }
-
-        // Edge detection: difference between neighboring pixels
-        if (x < maxX - 1) {
-          const nextIdx = (y * w + (x + 1)) * 4;
-          const diff = Math.abs(r - data[nextIdx]) + Math.abs(g - data[nextIdx + 1]) + Math.abs(b - data[nextIdx + 2]);
-          if (diff > 50) horizontalEdges++;
-        }
-        if (y < maxY - 1) {
-          const nextIdx = ((y + 1) * w + x) * 4;
-          const diff = Math.abs(r - data[nextIdx]) + Math.abs(g - data[nextIdx + 1]) + Math.abs(b - data[nextIdx + 2]);
-          if (diff > 50) verticalEdges++;
-        }
+        // CHW format
+        const pixelIdx = y * YOLO_INPUT_SIZE + x;
+        input[pixelIdx] = r;                        // R
+        input[YOLO_INPUT_SIZE * YOLO_INPUT_SIZE + pixelIdx] = g;  // G
+        input[2 * YOLO_INPUT_SIZE * YOLO_INPUT_SIZE + pixelIdx] = b; // B
       }
     }
   }
 
-  const darkRatio = darkNonSkinPixels / totalBoxPixels;
-  const edgeDensity = (horizontalEdges + verticalEdges) / totalBoxPixels;
-
-  // Conditions indicating phone use:
-  // - A wide skin box with dark casing pixels and clean edge transitions (e.g. hand holding phone next to ear).
-  // - A phone held in front of the body/chest (face is still visible, but phone box is visible in lower portion).
-  const isPhoneHeldSide = aspectRatio > 1.25 && darkRatio > 0.15 && edgeDensity > 0.08;
-  const isPhoneHeldFront = darkRatio > 0.3 && edgeDensity > 0.12;
-
-  return isPhoneHeldSide || isPhoneHeldFront;
+  return new ort.Tensor("float32", input, [1, 3, YOLO_INPUT_SIZE, YOLO_INPUT_SIZE]);
 }
 
-export async function loadModels(): Promise<void> {
-  // Try native FaceDetection API (Chrome 89+)
-  const win = window as unknown as Record<string, unknown>;
-  if (typeof win.FaceDetection !== "undefined") {
-    useNativeDetection = true;
-    modelsReady = true;
-    return;
+// ─── Post-processing (NMS) ────────────────────────────────────
+
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  confidence: number;
+  classId: number;
+}
+
+function sigmoid(x: number): number {
+  return 1 / (1 + Math.exp(-x));
+}
+
+function postprocessOutput(output: ort.Tensor, origWidth: number, origHeight: number): BoundingBox[] {
+  const outputData = output.data as Float32Array;
+  const numClasses = 80; // YOLOv8 trained on COCO (80 classes)
+
+  // YOLOv8 output shape: [1, 84, 8400] (4 bbox + 80 classes)
+  const numDetections = 8400;
+  const detections: BoundingBox[] = [];
+
+  for (let i = 0; i < numDetections; i++) {
+    // Extract bbox (cx, cy, w, h)
+    const cx = outputData[i];
+    const cy = outputData[numDetections + i];
+    const w = outputData[2 * numDetections + i];
+    const h = outputData[3 * numDetections + i];
+
+    // Extract class scores
+    let maxScore = 0;
+    let maxClassId = 0;
+    for (let c = 0; c < numClasses; c++) {
+      const score = sigmoid(outputData[(4 + c) * numDetections + i]);
+      if (score > maxScore) {
+        maxScore = score;
+        maxClassId = c;
+      }
+    }
+
+    // Filter: only person (0) and cell phone (67)
+    if (maxClassId !== PERSON_CLASS && maxClassId !== CELL_PHONE_CLASS) continue;
+    if (maxScore < CONFIDENCE_THRESHOLD) continue;
+
+    // Convert to xywh format and scale to original image
+    const scale = YOLO_INPUT_SIZE / Math.min(origWidth, origHeight);
+    detections.push({
+      x: (cx - w / 2) / scale,
+      y: (cy - h / 2) / scale,
+      width: w / scale,
+      height: h / scale,
+      confidence: maxScore,
+      classId: maxClassId,
+    });
   }
 
-  // Use canvas-based fallback
-  useNativeDetection = false;
-  modelsReady = true;
+  // Apply NMS
+  return nms(detections, NMS_IOU_THRESHOLD);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function nms(detections: BoundingBox[], iouThreshold: number): BoundingBox[] {
+  // Sort by confidence descending
+  detections.sort((a, b) => b.confidence - a.confidence);
+
+  const keep: BoundingBox[] = [];
+  const suppressed = new Set<number>();
+
+  for (let i = 0; i < detections.length; i++) {
+    if (suppressed.has(i)) continue;
+    keep.push(detections[i]);
+
+    for (let j = i + 1; j < detections.length; j++) {
+      if (suppressed.has(j)) continue;
+      if (detections[i].classId !== detections[j].classId) continue;
+
+      const iou = calculateIoU(detections[i], detections[j]);
+      if (iou > iouThreshold) {
+        suppressed.add(j);
+      }
+    }
+  }
+
+  return keep;
+}
+
+function calculateIoU(a: BoundingBox, b: BoundingBox): number {
+  const x1 = Math.max(a.x, b.x);
+  const y1 = Math.max(a.y, b.y);
+  const x2 = Math.min(a.x + a.width, b.x + b.width);
+  const y2 = Math.min(a.y + a.height, b.y + b.height);
+
+  const intersection = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  const areaA = a.width * a.height;
+  const areaB = b.width * b.height;
+  const union = areaA + areaB - intersection;
+
+  return union > 0 ? intersection / union : 0;
+}
+
+// ─── Temporal Smoothing ───────────────────────────────────────
+
+function updateTemporalSmoothing(
+  faceDetected: boolean,
+  phoneDetected: boolean
+): { smoothedFace: boolean; smoothedPhone: boolean } {
+  // Update face window
+  faceDetectionWindow.push(faceDetected);
+  if (faceDetectionWindow.length > SLIDING_WINDOW_SIZE) {
+    faceDetectionWindow.shift();
+  }
+
+  // Update phone window
+  phoneDetectionWindow.push(phoneDetected);
+  if (phoneDetectionWindow.length > SLIDING_WINDOW_SIZE) {
+    phoneDetectionWindow.shift();
+  }
+
+  // Check if enough frames agree (≥3 of last 5)
+  const facePositiveCount = faceDetectionWindow.filter(Boolean).length;
+  const phonePositiveCount = phoneDetectionWindow.filter(Boolean).length;
+
+  const smoothedFace = facePositiveCount >= MIN_POSITIVE_FRAMES;
+  const smoothedPhone = phonePositiveCount >= MIN_POSITIVE_FRAMES;
+
+  return { smoothedFace, smoothedPhone };
+}
+
+// ─── Main Detection Function ──────────────────────────────────
+
 export async function detectFrame(
   video: HTMLVideoElement
 ): Promise<DetectionResult> {
   if (!modelsReady) {
-    return { faceDetected: false, phoneDetected: false, faceCount: 0 };
+    return {
+      faceDetected: false,
+      phoneDetected: false,
+      faceCount: 0,
+      confidence: 0,
+      personDetected: false,
+    };
   }
 
-  // Always draw to canvas to get pixel data for phone detection and fallback face detection
+  // Initialize canvas
   if (!frameCanvas) {
     frameCanvas = document.createElement("canvas");
     frameCtx = frameCanvas.getContext("2d", { willReadFrequently: true });
   }
   if (!frameCtx) {
-    return { faceDetected: false, phoneDetected: false, faceCount: 0 };
+    return {
+      faceDetected: false,
+      phoneDetected: false,
+      faceCount: 0,
+      confidence: 0,
+      personDetected: false,
+    };
   }
 
-  const w = 160, h = 120;
-  frameCanvas.width = w;
-  frameCanvas.height = h;
-  frameCtx.drawImage(video, 0, 0, w, h);
-  const imageData = frameCtx.getImageData(0, 0, w, h);
+  frameCanvas.width = CANVAS_WIDTH;
+  frameCanvas.height = CANVAS_HEIGHT;
+  frameCtx.drawImage(video, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  const imageData = frameCtx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   const data = imageData.data;
 
   let faceDetected = false;
   let faceCount = 0;
-  let skinBoundingBox: { minX: number; maxX: number; minY: number; maxY: number } | null = null;
+  let phoneDetected = false;
+  let personDetected = false;
+  let confidence = 0;
 
-  // Find skin pixels and bounding box coordinates
-  let skinPixels = 0;
-  let minX = w;
-  let maxX = 0;
-  let minY = h;
-  let maxY = 0;
-
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4;
-      if (isSkinColor(data[i], data[i + 1], data[i + 2])) {
-        skinPixels++;
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-
-  const totalPixels = w * h;
-  const skinRatio = skinPixels / totalPixels;
-
-  if (useNativeDetection) {
+  // ─── Face Detection (MediaPipe) ────
+  if (faceDetector) {
     try {
-      const FaceDetectionClass = (window as unknown as Record<string, unknown>).FaceDetection as new (opts: { fastMode: boolean; maxDetectedFaces: number }) => { detect: (el: HTMLVideoElement) => Promise<Array<{ boundingBox: { x: number; width: number; y: number; height: number } }> > };
-      const detector = new FaceDetectionClass({ fastMode: true, maxDetectedFaces: 3 });
-      const faces = await detector.detect(video);
-      faceCount = faces.length;
-      faceDetected = faces.length > 0;
-
-      if (faceDetected) {
-        // Map native bounding box back to our canvas scale
-        if (skinPixels > 0 && skinRatio > 0.02) {
-          skinBoundingBox = { minX, maxX, minY, maxY };
-        } else {
-          const face = faces[0].boundingBox;
-          const scaleX = w / video.videoWidth;
-          const scaleY = h / video.videoHeight;
-          skinBoundingBox = {
-            minX: Math.max(0, Math.floor(face.x * scaleX)),
-            maxX: Math.min(w - 1, Math.floor((face.x + face.width) * scaleX)),
-            minY: Math.max(0, Math.floor(face.y * scaleY)),
-            maxY: Math.min(h - 1, Math.floor((face.y + face.height) * scaleY)),
-          };
-        }
-      }
+      const now = performance.now();
+      const result = faceDetector.detectForVideo(video, now);
+      faceCount = result.detections.length;
+      faceDetected = result.detections.length > 0;
     } catch {
       faceDetected = false;
     }
   }
 
-  // Fallback to skin-based detection if native failed or is disabled
-  if (!useNativeDetection) {
-    faceDetected = skinRatio > 0.03;
+  // ─── YOLO Object Detection (phone, person) ────
+  if (yoloSession) {
+    try {
+      const inputTensor = preprocessFrame(imageData);
+      const results = await yoloSession.run({ images: inputTensor });
+      const output = results[Object.keys(results)[0]];
+      const detections = postprocessOutput(output, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Check large movement / look-away
+      for (const det of detections) {
+        if (det.classId === CELL_PHONE_CLASS && det.confidence > confidence) {
+          phoneDetected = true;
+          confidence = det.confidence;
+        }
+        if (det.classId === PERSON_CLASS) {
+          personDetected = true;
+        }
+      }
+    } catch (err) {
+      console.warn("YOLO inference error:", err);
+    }
+  } else {
+    // Fallback: motion-based distraction detection
+    // Detect sudden movement in lower half of frame (phone usage zone)
     if (previousFrame) {
-      let diffPixels = 0;
-      for (let i = 0; i < data.length; i += 4) {
+      const lowerHalfStart = Math.floor(CANVAS_HEIGHT * 0.5) * CANVAS_WIDTH * 4;
+      const totalPixels = CANVAS_WIDTH * Math.floor(CANVAS_HEIGHT * 0.5);
+      let motionPixels = 0;
+
+      for (let i = lowerHalfStart; i < data.length; i += 4) {
         const diff = Math.abs(data[i] - previousFrame.data[i]) +
                      Math.abs(data[i + 1] - previousFrame.data[i + 1]) +
                      Math.abs(data[i + 2] - previousFrame.data[i + 2]);
-        if (diff > 60) diffPixels++;
+        if (diff > 40) motionPixels++;
       }
-      if (diffPixels / totalPixels > 0.4) {
-        faceDetected = false;
+
+      // High motion in lower frame = likely phone usage
+      if (motionPixels / totalPixels > 0.25) {
+        phoneDetected = true;
+        confidence = 0.5;
       }
     }
     previousFrame = imageData;
-    faceCount = faceDetected ? 1 : 0;
-
-    if (faceDetected) {
-      skinBoundingBox = { minX, maxX, minY, maxY };
-    }
   }
 
-  // Calculate phone detection using our custom heuristic
-  const phoneDetected = detectPhoneHeuristic(video, faceDetected, skinBoundingBox, data, w, h);
+  // ─── Temporal Smoothing ────
+  const { smoothedFace, smoothedPhone } = updateTemporalSmoothing(faceDetected, phoneDetected);
 
-  return { faceDetected, phoneDetected, faceCount };
+  return {
+    faceDetected: smoothedFace,
+    phoneDetected: smoothedPhone,
+    faceCount,
+    confidence,
+    personDetected,
+  };
 }
 
 export function isModelsLoaded(): boolean {
@@ -252,3 +369,5 @@ export function isModelsLoaded(): boolean {
 export function isModelsLoading(): boolean {
   return false;
 }
+
+export { DETECTION_INTERVAL_MS, CONSECUTIVE_FRAMES_REQUIRED };

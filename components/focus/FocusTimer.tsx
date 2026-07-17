@@ -31,7 +31,7 @@ const phaseLabels: Record<FocusPhase, string> = {
 
 const phaseColors: Record<FocusPhase, string> = {
   idle: "var(--color-text-secondary)",
-  focus: "#8b6914",
+  focus: "var(--color-primary)",
   break: "#10b981",
   longBreak: "#3b82f6",
 };
@@ -56,7 +56,7 @@ export default function FocusTimer({
       : 0;
   const strokeDashoffset = circumference - progress * circumference;
 
-  const color = isStopwatch ? "#8b6914" : phaseColors[phase];
+  const color = isStopwatch ? "var(--color-primary)" : phaseColors[phase];
   const displayTime = isStopwatch ? stopwatchElapsed : timeRemaining;
   const label = isStopwatch
     ? phase === "idle"
@@ -65,7 +65,7 @@ export default function FocusTimer({
     : phaseLabels[phase];
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="flex flex-col items-center gap-6" role="timer" aria-label={`Focus timer: ${label}, ${formatTime(displayTime)} remaining`}>
       {/* Circular timer */}
       <div className="relative">
         <svg width={radius * 2} height={radius * 2} className="-rotate-90">
@@ -101,7 +101,7 @@ export default function FocusTimer({
           >
             {formatTime(displayTime)}
           </span>
-          <span className="text-sm mt-2" style={{ color: "var(--color-text-secondary)" }}>
+          <span className="text-sm mt-2 text-(--color-text-secondary)">
             {label}
           </span>
         </div>

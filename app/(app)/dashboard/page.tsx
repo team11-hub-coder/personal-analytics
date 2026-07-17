@@ -39,12 +39,19 @@ import {
   useDashboardMonthlySummary,
 } from "@/hooks/useDashboard";
 
-function formatFocusTime(mins: number) {
-  if (mins === 0) return "0m";
-  if (mins < 60) return `${mins}m`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+function formatFocusTime(mins: number, sessions: number) {
+  let timeStr: string;
+  if (mins === 0) {
+    timeStr = "0m";
+  } else if (mins < 60) {
+    timeStr = `${mins}m`;
+  } else {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    timeStr = m > 0 ? `${h}h${m}m` : `${h}h`;
+  }
+  if (sessions === 0) return timeStr;
+  return `${sessions}s · ${timeStr}`;
 }
 
 export default function DashboardPage() {
@@ -119,12 +126,20 @@ export default function DashboardPage() {
     const pendingCount = rawTasks.filter((t) => t.status === "pending").length;
 
     // Focus Calculation
+    const dailyCompletedSessions = rawFocusSessions
+      .filter((s) => s.completed && s.started_at.split("T")[0] === todayStr).length;
     const dailyFocus = rawFocusSessions
       .filter((s) => s.completed && s.started_at.split("T")[0] === todayStr)
       .reduce((sum, s) => sum + s.duration_minutes, 0);
+
+    const weeklyCompletedSessions = rawFocusSessions
+      .filter((s) => s.completed && s.started_at.split("T")[0] >= weekAgoStr).length;
     const weeklyFocus = rawFocusSessions
       .filter((s) => s.completed && s.started_at.split("T")[0] >= weekAgoStr)
       .reduce((sum, s) => sum + s.duration_minutes, 0);
+
+    const monthlyCompletedSessions = rawFocusSessions
+      .filter((s) => s.completed && s.started_at.split("T")[0] >= monthStartStr).length;
     const monthlyFocus = rawFocusSessions
       .filter((s) => s.completed && s.started_at.split("T")[0] >= monthStartStr)
       .reduce((sum, s) => sum + s.duration_minutes, 0);
@@ -135,18 +150,21 @@ export default function DashboardPage() {
         workouts: dailyWorkouts,
         tasks: pendingCount,
         focus: dailyFocus,
+        completedSessions: dailyCompletedSessions,
       },
       weekly: {
         spent: weeklySpent,
         workouts: weeklyWorkouts,
         tasks: pendingCount,
         focus: weeklyFocus,
+        completedSessions: weeklyCompletedSessions,
       },
       monthly: {
         spent: monthlySpent,
         workouts: monthlyWorkouts,
         tasks: pendingCount,
         focus: monthlyFocus,
+        completedSessions: monthlyCompletedSessions,
       },
     };
   }, [rawTransactions, rawWorkouts, rawTasks, rawFocusSessions]);
@@ -452,7 +470,7 @@ export default function DashboardPage() {
     {
       icon: <Timer size={20} />,
       label: labels[timeRange].focus,
-      value: statsLoading ? null : formatFocusTime(stats[timeRange].focus),
+      value: statsLoading ? null : formatFocusTime(stats[timeRange].focus, stats[timeRange].completedSessions),
       color: statColors.blue,
     },
   ];

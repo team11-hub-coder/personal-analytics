@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { loadModels, detectFrame, type DetectionResult } from "@/lib/detection";
+import { loadModels, detectFrame, DETECTION_INTERVAL_MS, type DetectionResult } from "@/lib/detection";
 import { GripVertical, Phone, UserX } from "lucide-react";
 
 interface CameraMonitorProps {
@@ -52,7 +52,7 @@ export default function CameraMonitor({
   const startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: 320, height: 240 },
+        video: { facingMode: "user", width: 640, height: 480 },
         audio: false,
       });
 
@@ -151,7 +151,7 @@ export default function CameraMonitor({
         setAlertDuration(0);
         onAlert?.(null, 0);
       }
-    }, 2500);
+    }, DETECTION_INTERVAL_MS);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -278,21 +278,23 @@ export default function CameraMonitor({
         {/* Alert timer badge on video */}
         {activeAlert && alertDuration > 0 && (
           <div
-            className="absolute bottom-2 left-2 right-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg"
+            className="absolute bottom-2 left-2 right-2 flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg"
             style={{
-              backgroundColor: activeAlert === "phone" ? "rgba(220,38,38,0.9)" : "rgba(217,119,6,0.9)",
+              backgroundColor: activeAlert === "phone" ? "rgba(220,38,38,0.95)" : "rgba(217,119,6,0.95)",
             }}
           >
-            {activeAlert === "phone" ? (
-              <Phone size={14} className="text-white" />
-            ) : (
-              <UserX size={14} className="text-white" />
-            )}
-            <span className="text-white text-sm font-mono font-bold">
-              {formatDuration(alertDuration)}
-            </span>
-            <span className="text-white/80 text-xs">
-              {activeAlert === "phone" ? "Phone" : "Absent"}
+            <div className="flex items-center gap-2">
+              {activeAlert === "phone" ? (
+                <Phone size={16} className="text-white" />
+              ) : (
+                <UserX size={16} className="text-white" />
+              )}
+              <span className="text-white text-base font-mono font-bold">
+                {formatDuration(alertDuration)}
+              </span>
+            </div>
+            <span className="text-white text-xs font-medium">
+              {activeAlert === "phone" ? "Phone detected" : "Return to your desk!"}
             </span>
           </div>
         )}

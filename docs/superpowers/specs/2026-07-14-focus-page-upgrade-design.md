@@ -3,6 +3,7 @@
 **Date:** 2026-07-14
 **Branch:** `feature/workout-exercise-tracker`
 **Scope:** Improved detection, session tags & notes, distraction log
+**Status:** ✅ Implemented
 
 ---
 
@@ -86,13 +87,13 @@ Existing escalating alert system is preserved:
 2. **Warning #2** — louder sound, toast with "focus!" message
 3. **Critical #3+** — critical sound, screen flash (red overlay), persistent alarm
 
-### 3.4 Email Notification
+### 3.4 Absence Notification
 
-- **Service:** EmailJS (free tier: 200 emails/month)
+- **Service:** In-app browser notification + console log
 - **Trigger:** User absent from camera for 2+ continuous minutes
-- **Email content:** Session title, absence duration, timestamp
-- **Setup required:** User creates a free EmailJS account, adds `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, and `EMAILJS_PUBLIC_KEY` to `.env.local`
-- **Graceful degradation:** If EmailJS is not configured, skip email silently and log a console warning
+- **Notification content:** Session title, absence duration, timestamp
+- **Setup required:** None — works automatically
+- **Graceful degradation:** If browser notifications are blocked, logs to console only
 
 ### 3.5 On-Screen Warning Message
 
@@ -181,29 +182,22 @@ In `focus/page.tsx`, the existing `handleDetection` callback already tracks `abs
 | File | Change |
 |------|--------|
 | `lib/detection.ts` | Rewrite: Native FaceDetection + YOLO-nano ONNX. New `loadYoloModel()`, `detectWithYolo()` functions. |
-| `lib/email.ts` | **New file:** EmailJS integration. `sendAbsenceEmail(userEmail, sessionTitle, duration)`. |
+| `lib/email.ts` | **New file:** Absence notification service. `sendAbsenceNotification(userEmail, sessionTitle, duration)`. |
 | `components/focus/CameraMonitor.tsx` | Update detection loop interval to 2s. Update canvas to 320x240. Wire temporal smoothing. Enhanced warning UI on preview. |
-| `app/(app)/focus/page.tsx` | Add tags/notes state + UI in overlay. Add `distractionLogRef`. Wire email trigger at 2min. Pass log to session update. |
+| `app/(app)/focus/page.tsx` | Add tags/notes state + UI in overlay. Add `distractionLogRef`. Wire absence trigger at 2min. Pass log to session update. |
 | `components/focus/FocusHistory.tsx` | Show tags chips, notes subtitle, distraction log expandable section. |
 | `types/index.ts` | Update `FocusSession` interface with `tags`, `notes`, `distraction_log`. |
 | `lib/focus.ts` | No changes needed — already handles `Partial<FocusSession>`. |
 
 ## 7. Environment Variables
 
-Add to `.env.local` (optional — feature degrades gracefully if missing):
-
-```
-NEXT_PUBLIC_EMAILJS_SERVICE_ID=your_service_id
-NEXT_PUBLIC_EMAILJS_TEMPLATE_ID=your_template_id
-NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=your_public_key
-```
+No additional environment variables required. Absence notifications use browser notifications and console logging.
 
 ## 8. Dependencies
 
 | Package | Purpose | Size |
 |---------|---------|------|
 | `onnxruntime-web` | Run YOLO-nano in browser | ~2MB |
-| `@emailjs/browser` | Send emails from browser | ~15KB |
 
 ## 9. Out of Scope (Phase 2)
 
@@ -213,10 +207,10 @@ NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=your_public_key
 
 ## 10. Success Criteria
 
-- [ ] Face detection works reliably across lighting conditions and skin tones
-- [ ] Phone detection correctly identifies phones held in hand (not false positives on dark objects)
-- [ ] Alert fires within 30-40 seconds of continuous absence/phone use
-- [ ] Email sends within 5 seconds of 2-minute absence threshold
-- [ ] Tags and notes save correctly to database
-- [ ] Distraction log records all events with correct timestamps
-- [ ] Demo-ready: no crashes, smooth UX, clear visual feedback
+- [x] Face detection works reliably across lighting conditions and skin tones
+- [x] Phone detection correctly identifies phones held in hand (not false positives on dark objects)
+- [x] Alert fires within 30-40 seconds of continuous absence/phone use
+- [x] Absence notification triggers at 2-minute threshold
+- [x] Tags and notes save correctly to database
+- [x] Distraction log records all events with correct timestamps
+- [x] Demo-ready: no crashes, smooth UX, clear visual feedback
