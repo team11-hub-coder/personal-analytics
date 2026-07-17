@@ -207,6 +207,7 @@ export default function DashboardPage() {
         const dateStr = d.toLocaleDateString("en-CA");
         weekDays.push({ day: days[d.getDay()], dateStr, amount: 0 });
       }
+
       rawTransactions.forEach((t) => {
         const entry = weekDays.find((w) => w.dateStr === t.date);
         if (entry) entry.amount += Number(t.amount);
@@ -467,7 +468,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className={pageHeader.title}>Welcome back!</h1>
+        <h1 className={pageHeader.title}>Hello, { profile?.display_name || ''}</h1>
         <p className={pageHeader.subtitle}>
           Here&apos;s your overview for today.
         </p>

@@ -27,7 +27,7 @@ export default function LoginForm() {
   return (
     <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-8">
       <h2 className="text-xl font-semibold text-white mb-6">
-        Welcome Back
+        Sign in to your account
       </h2>
 
       {login.isError && (

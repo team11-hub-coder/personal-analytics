@@ -1,6 +1,7 @@
 export interface Profile {
   id: string;
   display_name: string;
+  avatar_url?: string | null;
   daily_calorie_target: number;
   monthly_budget_goal: number;
   currency: string;
