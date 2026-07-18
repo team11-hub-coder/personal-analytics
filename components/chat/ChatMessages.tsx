@@ -44,7 +44,7 @@ interface ChatMessagesProps {
   /** Callback when a suggestion chip is clicked */
   onSuggestionClick: (s: string) => void;
   /** Ref for auto-scrolling to bottom */
-  scrollRef?: React.RefObject<HTMLDivElement>;
+  scrollRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function ChatMessages({
