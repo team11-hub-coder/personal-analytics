@@ -3,11 +3,11 @@
 import { useMemo } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import ChartBar from "./ChartBar";
-import { chartColors } from "@/lib/theme";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getLocalDateString } from "@/lib/dates";
 
 export default function ProductivityChart() {
-  const { data: completedTasks } = useTasks({ status: "completed" });
+  const { data: completedTasks, isLoading } = useTasks({ status: "completed" });
 
   const chartData = useMemo(() => {
     if (!completedTasks || completedTasks.length === 0) return [];
@@ -33,6 +33,10 @@ export default function ProductivityChart() {
 
     return days.map((d) => ({ name: d.label, tasks: d.count }));
   }, [completedTasks]);
+
+  if (isLoading) {
+    return <Skeleton className="h-[200px] w-full" />;
+  }
 
   return (
     <ChartBar
