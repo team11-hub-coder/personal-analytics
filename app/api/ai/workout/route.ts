@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
+import { checkRateLimit, recordUsage } from "@/lib/rateLimit";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
@@ -30,6 +31,22 @@ export async function POST(request: NextRequest) {
 
     if (!process.env.GEMINI_API_KEY) {
       return Response.json({ error: "AI service unavailable" }, { status: 500 });
+    }
+
+    // Check rate limits
+    let userTimezone = "UTC";
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("timezone")
+        .eq("id", user.id)
+        .single();
+      if (profile?.timezone) userTimezone = profile.timezone;
+    } catch { /* fallback to UTC */ }
+
+    const rateLimit = await checkRateLimit(user.id, supabase, userTimezone);
+    if (!rateLimit.allowed) {
+      return Response.json({ error: rateLimit.error }, { status: 429 });
     }
 
     // Fetch user's workout history for context
@@ -110,6 +127,9 @@ Generate the workout plan as JSON only.`);
     }
 
     const workout = JSON.parse(jsonMatch[0]);
+
+    // Record usage
+    await recordUsage(user.id, `workout: ${validationResult.data.muscleGroup}`, responseText, supabase, "gemini-3-flash-preview");
 
     return Response.json({ workout });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { checkRateLimit, recordUsage } from "@/lib/rateLimit";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
@@ -15,6 +16,22 @@ export async function POST(_request: NextRequest) {
 
     if (!process.env.GEMINI_API_KEY) {
       return Response.json({ error: "AI service unavailable" }, { status: 500 });
+    }
+
+    // Check rate limits
+    let userTimezone = "UTC";
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("timezone")
+        .eq("id", user.id)
+        .single();
+      if (profile?.timezone) userTimezone = profile.timezone;
+    } catch { /* fallback to UTC */ }
+
+    const rateLimit = await checkRateLimit(user.id, supabase, userTimezone);
+    if (!rateLimit.allowed) {
+      return Response.json({ error: rateLimit.error }, { status: 429 });
     }
 
     const today = new Date();
@@ -111,6 +128,9 @@ Generate the daily summary as JSON only.`);
     }
 
     const summary = JSON.parse(jsonMatch[0]);
+
+    // Record usage
+    await recordUsage(user.id, "daily summary", responseText, supabase, "gemini-3-flash-preview");
 
     return Response.json({
       summary: summary.summary,
