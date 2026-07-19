@@ -6,12 +6,22 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const APP_URL = Deno.env.get("NEXT_PUBLIC_APP_URL") || "http://localhost:3000";
 
+function escapeHtml(s: string): string {
+  return s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 // Mustache-style template renderer: supports {{key}} and {{#if key}}...{{/if}}
 function renderTemplate(
   html: string,
   subject: string,
   vars: Record<string, string>
 ): { subject: string; html: string } {
+  
   function processConditionals(content: string): string {
     return content.replace(
       /{{#if (\w+)}}([\s\S]*?){{\/if}}/g,
@@ -22,10 +32,13 @@ function renderTemplate(
   let renderedHtml = processConditionals(html);
   let renderedSubject = processConditionals(subject);
 
+  const rawKeys = new Set(["dashboard_url", "unsubscribe_url"]);
+
   for (const [key, value] of Object.entries(vars)) {
     const placeholder = `{{${key}}}`;
-    renderedHtml = renderedHtml.replaceAll(placeholder, value);
-    renderedSubject = renderedSubject.replaceAll(placeholder, value);
+    const renderedValue = rawKeys.has(key) ? value : escapeHtml(value);
+    renderedHtml = renderedHtml.replaceAll(placeholder, renderedValue);
+    renderedSubject = renderedSubject.replaceAll(placeholder, renderedValue);
   }
   return { subject: renderedSubject, html: renderedHtml };
 }
