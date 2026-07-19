@@ -9,6 +9,7 @@ export function useReminders() {
 
   return useQuery<Reminder[]>({
     queryKey: ["reminders"],
+    refetchInterval: 30000, // Refresh every 30s for Telegram bot updates
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reminders")

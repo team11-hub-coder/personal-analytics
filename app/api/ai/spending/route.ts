@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getLocalDateString } from "@/lib/dates";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
@@ -25,7 +26,7 @@ export async function POST(_request: NextRequest) {
       supabase.from("transactions")
         .select("amount, category_id, description, date, categories(name)")
         .eq("user_id", user.id)
-        .gte("date", thirtyDaysAgo.toISOString().split("T")[0])
+        .gte("date", getLocalDateString(thirtyDaysAgo))
         .order("date", { ascending: false }),
       supabase.from("budgets")
         .select("monthly_limit, categories(name)")

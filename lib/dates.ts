@@ -11,8 +11,32 @@
  *  - When READING a `timestamptz` column → JS Date handles conversion automatically
  */
 
-/** Get today's date as YYYY-MM-DD in the user's local timezone. */
+/**
+ * Get the configured timezone for server-side code.
+ * On cloud servers (Vercel, etc.) the runtime is UTC by default.
+ * Set TZ=Asia/Yangon (or your timezone) in .env.local to fix this.
+ */
+function getServerTimezone(): string {
+  return process.env.TZ || "UTC";
+}
+
+/**
+ * Format a Date as YYYY-MM-DD in the given timezone.
+ * Uses Intl.DateTimeFormat for correct DST handling.
+ */
+function formatInTimezone(date: Date, tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(date);
+  // en-CA produces YYYY-MM-DD
+}
+
+/** Get today's date as YYYY-MM-DD in the configured timezone (TZ env var, or system local). */
 export function getLocalDateString(date: Date = new Date()): string {
+  const tz = getServerTimezone();
+  // If TZ is set, use Intl to format in that timezone
+  if (process.env.TZ) {
+    return formatInTimezone(date, tz);
+  }
+  // Otherwise fall back to system local time (works on local dev machines)
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");

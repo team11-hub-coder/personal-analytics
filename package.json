@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently \"next dev\" \"npm run telegram-bot\"",
+    "dev:web": "next dev",
+    "dev:bot": "npm run telegram-bot",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "telegram-bot": "npx tsx scripts/telegram-poll.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -21,6 +24,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
+    "node-telegram-bot-api": "^1.2.0",
     "onnxruntime-web": "^1.27.0",
     "react": "19.2.7",
     "react-dom": "19.2.4",
@@ -37,10 +41,13 @@
     "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^10.0.3",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "postcss": "^8.5.19",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }

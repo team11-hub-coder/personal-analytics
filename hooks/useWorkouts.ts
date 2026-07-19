@@ -11,5 +11,6 @@ export function useWorkouts(limit = 50) {
     queryKey: ["workouts", limit, user?.id],
     queryFn: () => getWorkouts(limit),
     enabled: !authLoading && !!user,
+    refetchInterval: 30000, // Refresh every 30s for Telegram bot updates
   });
 }

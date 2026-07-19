@@ -221,6 +221,18 @@ create table chat_messages (
   content text not null,
   created_at timestamptz default now()
 );
+
+-- TELEGRAM BOTS (one per user — stores bot token for Telegram integration)
+create table telegram_bots (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users(id) on delete cascade,
+  bot_token text not null,
+  chat_id bigint,
+  webhook_secret text not null,
+  is_active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
 ```
 
 Now turn on **Row Level Security** and add the "each user owns their rows" policy for
@@ -233,6 +245,7 @@ alter table transactions  enable row level security;
 alter table budgets        enable row level security;
 alter table workouts       enable row level security;
 alter table tasks          enable row level security;
+alter table telegram_bots  enable row level security;
 alter table reminders      enable row level security;
 alter table chat_messages  enable row level security;
 
@@ -247,6 +260,7 @@ create policy "own rows" on workouts     for all using (auth.uid() = user_id) wi
 create policy "own rows" on tasks        for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows" on reminders    for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own rows" on chat_messages for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own bot"    on telegram_bots for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 ```
 
 **Optional but recommended** — auto-create a profile row when someone signs up:

@@ -101,6 +101,7 @@ export function useTasks(filters?: TaskFilters) {
 
   return useQuery({
     queryKey: ["tasks", filters, user?.id],
+    refetchInterval: 30000, // Refresh every 30s for Telegram bot updates
     queryFn: async () => {
       // Use the view which includes effective_status
       let query = supabase

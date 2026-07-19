@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getLocalDateString } from "@/lib/dates";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
@@ -17,27 +18,25 @@ export async function POST(_request: NextRequest) {
       return Response.json({ error: "AI service unavailable" }, { status: 500 });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayISO = today.toISOString();
+    const todayStr = getLocalDateString();
 
     // Fetch today's data across all modules + user profile for currency
     const [workoutsRes, tasksRes, focusRes, transactionsRes, remindersRes, profileRes] = await Promise.allSettled([
       supabase.from("workouts")
         .select("exercise_name, exercise_type, calories, duration_min, date")
         .eq("user_id", user.id)
-        .gte("date", todayISO),
+        .gte("date", todayStr),
       supabase.from("tasks")
         .select("title, priority, status, due_date")
         .eq("user_id", user.id),
       supabase.from("focus_sessions")
         .select("title, duration_minutes, completed, started_at")
         .eq("user_id", user.id)
-        .gte("started_at", todayISO),
+        .gte("started_at", todayStr),
       supabase.from("transactions")
         .select("amount, category_id, description, date, categories(name)")
         .eq("user_id", user.id)
-        .gte("date", todayISO.split("T")[0]),
+        .gte("date", todayStr),
       supabase.from("reminders")
         .select("title, remind_at, is_active")
         .eq("user_id", user.id)

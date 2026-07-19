@@ -209,6 +209,15 @@ export interface WeeklySummary {
   created_at: string;
 }
 
+export interface TelegramLink {
+  id: string;
+  user_id: string;
+  chat_id: number;
+  connect_code: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface NotificationPreference {
   id: string;
   user_id: string;

@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useNotificationPreferences";
 import { pageHeader, card } from "@/lib/theme";
 import type { NotificationPreference } from "@/types";
+import { TelegramSettings } from "@/components/telegram/telegram-settings";
 
 const features = [
   {
@@ -139,10 +140,13 @@ export default function SettingsPage() {
         <div>
           <h1 className={pageHeader.title}>Settings</h1>
           <p className={pageHeader.subtitle}>
-            Manage your email notification preferences.
+            Manage your notification preferences and integrations.
           </p>
         </div>
       </div>
+
+      {/* Telegram Bot Integration */}
+      <TelegramSettings />
 
       {isLoading ? (
         <div className={card.base}>

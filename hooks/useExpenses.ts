@@ -33,6 +33,7 @@ export function useTransactions(filters?: TransactionFilters) {
 
   return useQuery({
     queryKey: ["transactions", filters, user?.id],
+    refetchInterval: 30000, // Refresh every 30s for Telegram bot updates
     queryFn: async () => {
       let query = supabase
         .from("transactions")
