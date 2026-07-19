@@ -2,6 +2,15 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
+import {
+  checkRateLimit,
+  recordUsage,
+  getLocalNow,
+  getUserTimezone,
+  getUsageStats,
+  DAILY_LIMIT,
+  HOURLY_LIMIT,
+} from "@/lib/rateLimit";
 
 /**
  * Chat API Route
@@ -32,102 +41,11 @@ const chatRequestSchema = z.object({
     .max(50), // Limit conversation history
 });
 
-/**
- * Get the UTC offset in milliseconds for a given IANA timezone at the current moment.
- * Works correctly regardless of the server's timezone.
- */
-function getUTCOffsetMs(timezone: string, date: Date): number {
-  const fmtOpts: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-    hour12: false,
-  };
-
-  const utcParts = new Intl.DateTimeFormat("en-US", { ...fmtOpts, timeZone: "UTC" }).formatToParts(date);
-  const tzParts = new Intl.DateTimeFormat("en-US", { ...fmtOpts, timeZone: timezone }).formatToParts(date);
-
-  const val = (parts: Intl.DateTimeFormatPart[], type: string) =>
-    parseInt(parts.find((p) => p.type === type)?.value ?? "0");
-
-  const utcNum = Date.UTC(val(utcParts, "year"), val(utcParts, "month") - 1, val(utcParts, "day"),
-    val(utcParts, "hour"), val(utcParts, "minute"), val(utcParts, "second"));
-  const tzNum = Date.UTC(val(tzParts, "year"), val(tzParts, "month") - 1, val(tzParts, "day"),
-    val(tzParts, "hour"), val(tzParts, "minute"), val(tzParts, "second"));
-
-  return tzNum - utcNum;
-}
-
-/**
- * Get the current date/time parts in a specific IANA timezone.
- * Returns date strings for display AND UTC-equivalent ISO strings for database queries.
- */
-function getLocalNow(timezone: string) {
-  const now = new Date();
-
-  // Extract date/time components in the target timezone
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
-
-  const get = (type: string) => parseInt(parts.find((p) => p.type === type)?.value ?? "0");
-  const year = get("year");
-  const month = get("month");
-  const day = get("day");
-  const hour = get("hour");
-  const minute = get("minute");
-  const second = get("second");
-
-  const dateStr = `${String(year).padStart(2, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-  const hourStr = `${dateStr}T${String(hour).padStart(2, "0")}`;
-
-  // Compute UTC offset (handles DST correctly)
-  const offsetMs = getUTCOffsetMs(timezone, now);
-
-  // Convert local midnight and local start-of-hour to UTC for DB queries
-  const startOfDayUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0) - offsetMs);
-  const startOfHourUTC = new Date(Date.UTC(year, month - 1, day, hour, 0, 0) - offsetMs);
-
-  // Human-readable datetime for the AI
-  const datetimeStr = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    weekday: "long",
-  }).format(now);
-
-  return {
-    dateStr,
-    hourStr,
-    datetimeStr,
-    startOfDayUTC: startOfDayUTC.toISOString(),
-    startOfHourUTC: startOfHourUTC.toISOString(),
-  };
-}
-
 /** Maximum context size in characters (rough estimate: ~4 chars per token) */
 const MAX_CONTEXT_CHARS = 30000;
 
 /** Maximum individual message length in history */
 const MAX_HISTORY_MSG_CHARS = 2000;
-
-/** Rate limits */
-const DAILY_MESSAGE_LIMIT = 20;
-const HOURLY_MESSAGE_LIMIT = 5;
 
 /**
  * POST /api/chat
@@ -170,19 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch user's timezone from profile
-    let userTimezone = "UTC";
-    try {
-      const { data: tzProfile } = await supabase
-        .from("profiles")
-        .select("timezone")
-        .eq("id", user.id)
-        .single();
-      if (tzProfile?.timezone) {
-        userTimezone = tzProfile.timezone;
-      }
-    } catch {
-      // Fallback to UTC
-    }
+    const userTimezone = await getUserTimezone(user.id, supabase);
 
     // Check rate limits
     const rateLimitResult = await checkRateLimit(user.id, supabase, userTimezone);
@@ -191,8 +97,8 @@ export async function POST(request: NextRequest) {
         {
           error: rateLimitResult.error,
           usage: {
-            daily: { used: rateLimitResult.dailyUsed, limit: DAILY_MESSAGE_LIMIT },
-            hourly: { used: rateLimitResult.hourlyUsed, limit: HOURLY_MESSAGE_LIMIT },
+            daily: { used: rateLimitResult.dailyUsed, limit: DAILY_LIMIT },
+            hourly: { used: rateLimitResult.hourlyUsed, limit: HOURLY_LIMIT },
           },
         },
         { status: 429 }
@@ -250,7 +156,7 @@ ${context}`,
     const assistantMessage = result.response.text();
 
     // Record usage for tracking
-    await recordUsage(user.id, lastMessage.content, assistantMessage, supabase);
+    await recordUsage(user.id, lastMessage.content, assistantMessage.length, supabase);
 
     // Get updated usage stats
     const updatedUsage = await getUsageStats(user.id, supabase, userTimezone);
@@ -505,134 +411,4 @@ function truncateHistory(
         ? m.content.slice(0, MAX_HISTORY_MSG_CHARS) + "..."
         : m.content,
   }));
-}
-
-/**
- * Check if user has exceeded rate limits.
- *
- * @param userId - The user's ID
- * @param supabase - Supabase client
- * @returns Whether the request is allowed and current usage stats
- */
-async function checkRateLimit(
-  userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  timezone: string
-): Promise<{
-  allowed: boolean;
-  error?: string;
-  dailyUsed: number;
-  hourlyUsed: number;
-}> {
-  const { startOfDayUTC, startOfHourUTC } = getLocalNow(timezone);
-
-  // Check daily limit
-  const { count: dailyUsed } = await supabase
-    .from("chat_usage")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", startOfDayUTC);
-
-  if ((dailyUsed || 0) >= DAILY_MESSAGE_LIMIT) {
-    return {
-      allowed: false,
-      error: `Daily limit reached (${DAILY_MESSAGE_LIMIT} messages). Try again tomorrow.`,
-      dailyUsed: dailyUsed || 0,
-      hourlyUsed: 0,
-    };
-  }
-
-  // Check hourly limit
-  const { count: hourlyUsed } = await supabase
-    .from("chat_usage")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", startOfHourUTC);
-
-  if ((hourlyUsed || 0) >= HOURLY_MESSAGE_LIMIT) {
-    return {
-      allowed: false,
-      error: `Hourly limit reached (${HOURLY_MESSAGE_LIMIT} messages). Try again later.`,
-      dailyUsed: dailyUsed || 0,
-      hourlyUsed: hourlyUsed || 0,
-    };
-  }
-
-  return {
-    allowed: true,
-    dailyUsed: dailyUsed || 0,
-    hourlyUsed: hourlyUsed || 0,
-  };
-}
-
-/**
- * Record usage for cost tracking and analytics.
- *
- * @param userId - The user's ID
- * @param userMessage - The user's message content
- * @param assistantMessage - The AI's response content
- * @param supabase - Supabase client
- */
-async function recordUsage(
-  userId: string,
-  userMessage: string,
-  assistantMessage: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
-): Promise<void> {
-  try {
-    // Rough token estimate: ~4 chars per token
-    const inputTokens = Math.ceil(userMessage.length / 4);
-    const outputTokens = Math.ceil(assistantMessage.length / 4);
-
-    const { error } = await supabase.from("chat_usage").insert({
-      user_id: userId,
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      model: "gemini-3-flash-preview",
-    });
-
-    if (error) {
-      console.error("Failed to record usage:", error.message);
-    }
-  } catch (error) {
-    console.error("Failed to record usage:", error);
-  }
-}
-
-/**
- * Get current usage stats for the user.
- *
- * @param userId - The user's ID
- * @param supabase - Supabase client
- * @returns Usage statistics
- */
-async function getUsageStats(
-  userId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  timezone: string
-): Promise<{
-  daily: { used: number; limit: number };
-  hourly: { used: number; limit: number };
-}> {
-  const { startOfDayUTC, startOfHourUTC } = getLocalNow(timezone);
-
-  const { count: dailyUsed, error: dailyError } = await supabase
-    .from("chat_usage")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", startOfDayUTC);
-
-  const { count: hourlyUsed, error: hourlyError } = await supabase
-    .from("chat_usage")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", startOfHourUTC);
-
-  if (dailyError) console.error("Daily usage query error:", dailyError.message);
-  if (hourlyError) console.error("Hourly usage query error:", hourlyError.message);
-
-  return {
-    daily: { used: dailyUsed || 0, limit: DAILY_MESSAGE_LIMIT },
-    hourly: { used: hourlyUsed || 0, limit: HOURLY_MESSAGE_LIMIT },
-  };
 }

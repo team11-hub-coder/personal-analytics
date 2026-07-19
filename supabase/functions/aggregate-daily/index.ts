@@ -36,14 +36,9 @@ serve(async () => {
     }
   }
 
-  // Archive old data (90 days)
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 90);
-  const { error: deleteError } = await supabase
-    .from("transactions")
-    .delete()
-    .lt("date", cutoff.toISOString().split("T")[0]);
-  if (deleteError) console.error("Archive error:", deleteError);
+  // NOTE: Previously this deleted transactions older than 90 days.
+  // Removed — a personal analytics app should not silently wipe user history.
+  // Historical data is essential for trends, tax records, and year-over-year analysis.
 
   return new Response("OK", { status: 200 });
 });
