@@ -3,11 +3,11 @@
 import { useMemo } from "react";
 import { useTasks } from "@/hooks/useTasks";
 import ChartLine from "./ChartLine";
+import { Skeleton } from "@/components/ui/skeleton";
 import { chartColors } from "@/lib/theme";
-import { getLocalDateString } from "@/lib/dates";
 
 export default function CompletionRateChart() {
-  const { data: allTasks } = useTasks();
+  const { data: allTasks, isLoading } = useTasks();
 
   const chartData = useMemo(() => {
     if (!allTasks || allTasks.length === 0) return [];
@@ -41,6 +41,10 @@ export default function CompletionRateChart() {
       rate: d.total > 0 ? Math.round((d.completed / d.total) * 100) : 0,
     }));
   }, [allTasks]);
+
+  if (isLoading) {
+    return <Skeleton className="h-[200px] w-full" />;
+  }
 
   return (
     <ChartLine
