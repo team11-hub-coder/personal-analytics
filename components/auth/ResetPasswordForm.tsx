@@ -83,7 +83,7 @@ export default function ResetPasswordForm() {
           </p>
           <Link
             href="/forgot-password"
-            className="text-sm text-[#c9a96e] hover:text-[#8b6914] transition-colors"
+            className="text-sm text-[var(--color-accent)] hover:text-[var(--color-primary)] transition-colors"
           >
             Request a new reset link
           </Link>
@@ -143,7 +143,7 @@ export default function ResetPasswordForm() {
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               {...register("password")}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[#c9a96e]/50 focus:border-[#c9a96e]/50 transition-all"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/50 focus:border-[var(--color-accent)]/50 transition-all"
             />
             <button
               type="button"
@@ -172,7 +172,7 @@ export default function ResetPasswordForm() {
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               {...register("confirmPassword")}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[#c9a96e]/50 focus:border-[#c9a96e]/50 transition-all"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/50 focus:border-[var(--color-accent)]/50 transition-all"
             />
             <button
               type="button"
@@ -192,7 +192,7 @@ export default function ResetPasswordForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-[#8b6914] to-[#c9a96e] text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[#8b6914]/25"
+          className="w-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[var(--color-primary)]/25"
         >
           {loading ? (
             <Loader2 size={16} className="animate-spin" />

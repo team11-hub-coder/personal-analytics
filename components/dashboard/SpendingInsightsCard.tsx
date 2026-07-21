@@ -41,7 +41,7 @@ export default function SpendingInsightsCard() {
         <button
           onClick={handleGenerate}
           disabled={generateInsights.isPending}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)] disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-(--color-surface-hover) text-(--color-text-secondary) hover:bg-(--color-border) disabled:opacity-50"
         >
           {generateInsights.isPending ? (
             <Loader2 size={12} className="animate-spin" />
@@ -54,8 +54,8 @@ export default function SpendingInsightsCard() {
 
       {generateInsights.isPending ? (
         <div className="flex flex-col items-center justify-center py-8 gap-3">
-          <Loader2 size={24} className="animate-spin" style={{ color: "#8b6914" }} />
-          <p className="text-xs text-[var(--color-text-muted)]">Analyzing your spending...</p>
+          <Loader2 size={24} className="animate-spin text-(--color-primary)" />
+          <p className="text-xs text-(--color-text-muted)">Analyzing your spending...</p>
         </div>
       ) : insights ? (
         <div className="space-y-3">
@@ -69,7 +69,7 @@ export default function SpendingInsightsCard() {
                   : "bg-blue-50 text-blue-700"
             }`}>
               <span className="text-lg">
-                {insights.budgetStatus === "under" ? "✅" : insights.budgetStatus === "over" ? "⚠️" : "📊"}
+                {insights.budgetStatus === "under" ? "✓" : insights.budgetStatus === "over" ? "!" : "→"}
               </span>
               <span>
                 {insights.budgetStatus === "under" && `Under budget — ${formatCurrency(insights.totalSpent, insights.currency)} spent`}
@@ -81,9 +81,9 @@ export default function SpendingInsightsCard() {
 
           {/* Top category */}
           {insights.topCategory && (
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--color-surface-hover)] text-xs">
-              <span className="text-[var(--color-text-secondary)]">Top category</span>
-              <span className="font-medium text-[var(--color-text)]">
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-(--color-surface-hover) text-xs">
+              <span className="text-(--color-text-secondary)">Top category</span>
+              <span className="font-medium text-(--color-text)">
                 {insights.topCategory} ({formatCurrency(insights.topCategoryAmount, insights.currency)})
               </span>
             </div>
@@ -98,8 +98,8 @@ export default function SpendingInsightsCard() {
                   <Icon size={14} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[var(--color-text)]">{insight.icon} {insight.title}</p>
-                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{insight.detail}</p>
+                  <p className="text-sm font-medium text-(--color-text)">{insight.title}</p>
+                  <p className="text-xs text-(--color-text-secondary) mt-0.5">{insight.detail}</p>
                 </div>
               </div>
             );
@@ -107,15 +107,15 @@ export default function SpendingInsightsCard() {
 
           {/* Monthly projection */}
           {insights.monthProjection > 0 && (
-            <div className="text-xs text-center pt-2 border-t border-[var(--color-border)] text-[var(--color-text-muted)]">
+            <div className="text-xs text-center pt-2 border-t border-(--color-border) text-(--color-text-muted)">
               Projected monthly: {formatCurrency(insights.monthProjection, insights.currency)}
             </div>
           )}
         </div>
       ) : (
         <div className="text-center py-6">
-          <TrendingUp size={24} className="mx-auto mb-2 text-[var(--color-text-muted)]" />
-          <p className="text-xs text-[var(--color-text-muted)]">
+          <TrendingUp size={24} className="mx-auto mb-2 text-(--color-text-muted)" />
+          <p className="text-xs text-(--color-text-muted)">
             Click Analyze to get AI-powered spending insights
           </p>
         </div>

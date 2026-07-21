@@ -9,7 +9,23 @@ GRANT USAGE ON SCHEMA cron TO supabase_admin;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA cron TO supabase_admin;
 
 -- ============================================================
--- 2. Helper Functions
+-- 2. Secrets Table (service-role-only, not in code)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS app_secrets (
+  key text PRIMARY KEY,
+  value text NOT NULL
+);
+
+-- Only service role can read/write secrets
+ALTER TABLE app_secrets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role only"
+  ON app_secrets FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- ============================================================
+-- 3. Helper Functions
 -- ============================================================
 
 -- Queue finance alerts when spending >= 80% of budget
@@ -122,13 +138,21 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Process email queue: call the Edge Function
--- UPDATE: Replace YOUR_SUPABASE_URL and YOUR_SERVICE_ROLE_KEY with actual values
+-- Secrets stored in app_secrets table (RLS: service_role only).
+-- Set them once via:
+--   INSERT INTO app_secrets (key, value) VALUES
+--     ('supabase_url', 'https://your-project.supabase.co'),
+--     ('service_role_key', 'your-service-role-key')
+--   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 CREATE OR REPLACE FUNCTION process_email_queue()
 RETURNS void AS $$
 DECLARE
-  supabase_url TEXT := 'YOUR_SUPABASE_URL';
-  service_role_key TEXT := 'YOUR_SERVICE_ROLE_KEY';
+  supabase_url TEXT;
+  service_role_key TEXT;
 BEGIN
+  SELECT value INTO supabase_url FROM app_secrets WHERE key = 'supabase_url';
+  SELECT value INTO service_role_key FROM app_secrets WHERE key = 'service_role_key';
+
   PERFORM net.http_post(
     url := supabase_url || '/functions/v1/send-emails',
     headers := jsonb_build_object(

@@ -40,7 +40,7 @@ export default function RegisterForm() {
           </p>
           <Link
             href="/login"
-            className="text-sm text-[#c9a96e] hover:text-[#8b6914] transition-colors"
+            className="text-sm text-[var(--color-accent)] hover:text-[var(--color-primary)] transition-colors"
           >
             Back to sign in
           </Link>
@@ -72,7 +72,7 @@ export default function RegisterForm() {
             type="email"
             placeholder="you@example.com"
             {...registerField("email")}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#c9a96e]/50 focus:border-[#c9a96e]/50 transition-all"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/50 focus:border-[var(--color-accent)]/50 transition-all"
           />
           {errors.email && (
             <p className="text-xs text-red-400 mt-1">
@@ -90,7 +90,7 @@ export default function RegisterForm() {
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               {...registerField("password")}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[#c9a96e]/50 focus:border-[#c9a96e]/50 transition-all"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/50 focus:border-[var(--color-accent)]/50 transition-all"
             />
             <button
               type="button"
@@ -119,7 +119,7 @@ export default function RegisterForm() {
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               {...registerField("confirmPassword")}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[#c9a96e]/50 focus:border-[#c9a96e]/50 transition-all"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/50 focus:border-[var(--color-accent)]/50 transition-all"
             />
             <button
               type="button"
@@ -139,7 +139,7 @@ export default function RegisterForm() {
         <button
           type="submit"
           disabled={register.isPending}
-          className="w-full bg-gradient-to-r from-[#8b6914] to-[#c9a96e] text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[#8b6914]/25"
+          className="w-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[var(--color-primary)]/25"
         >
           {register.isPending ? (
             <Loader2 size={16} className="animate-spin" />
@@ -153,7 +153,7 @@ export default function RegisterForm() {
       <div className="mt-6 text-center">
         <Link
           href="/login"
-          className="text-sm text-[#c9a96e] hover:text-[#8b6914] transition-colors"
+          className="text-sm text-[var(--color-accent)] hover:text-[var(--color-primary)] transition-colors"
         >
           Already have an account? Sign in
         </Link>

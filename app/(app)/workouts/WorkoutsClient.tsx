@@ -16,18 +16,29 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { GeneratedWorkout, WorkoutExercise } from "@/types";
 import type { ExerciseType } from "@/lib/poseDetection";
-import { Plus, Sparkles, Camera, CameraOff, X, ArrowLeft, Loader2, Dumbbell, Target, Zap, Clock, Flame } from "lucide-react";
+import { Plus, Sparkles, Camera, CameraOff, X, ArrowLeft, Loader2, Dumbbell, Target, Zap, Clock, Flame, ArrowUp, Activity, Heart, Footprints, CircleDot } from "lucide-react";
 
 const muscleGroupOptions = [
-  { id: "chest", label: "Chest", icon: "💪" },
-  { id: "back", label: "Back", icon: "🔙" },
-  { id: "shoulders", label: "Shoulders", icon: "🏋️" },
-  { id: "arms", label: "Arms", icon: "💪" },
-  { id: "legs", label: "Legs", icon: "🦵" },
-  { id: "core", label: "Core", icon: "🎯" },
-  { id: "cardio", label: "Cardio", icon: "❤️" },
-  { id: "full-body", label: "Full Body", icon: "⚡" },
+  { id: "chest", label: "Chest", icon: "chest" },
+  { id: "back", label: "Back", icon: "back" },
+  { id: "shoulders", label: "Shoulders", icon: "shoulders" },
+  { id: "arms", label: "Arms", icon: "arms" },
+  { id: "legs", label: "Legs", icon: "legs" },
+  { id: "core", label: "Core", icon: "core" },
+  { id: "cardio", label: "Cardio", icon: "cardio" },
+  { id: "full-body", label: "Full Body", icon: "fullBody" },
 ] as const;
+
+const muscleGroupIcons: Record<string, React.ReactNode> = {
+  chest: <Dumbbell size={20} />,
+  back: <ArrowUp size={20} />,
+  shoulders: <Activity size={20} />,
+  arms: <Dumbbell size={20} />,
+  legs: <Footprints size={20} />,
+  core: <CircleDot size={20} />,
+  cardio: <Heart size={20} />,
+  fullBody: <Zap size={20} />,
+};
 
 const workoutTemplates: Record<string, GeneratedWorkout> = {
   chest: {
@@ -421,11 +432,10 @@ export default function WorkoutsClient() {
                       <button
                         key={m.id}
                         onClick={() => handleMusclePick(m.id)}
-                        className="flex items-center gap-3 p-4 rounded-xl text-left transition-all hover:scale-[1.02]"
-                        style={{ backgroundColor: "var(--color-surface-hover)", border: "1px solid var(--color-border)" }}
+                        className="flex items-center gap-3 p-4 rounded-xl text-left transition-all hover:scale-[1.02] bg-(--color-surface-hover) border border-(--color-border)"
                       >
-                        <span className="text-2xl">{m.icon}</span>
-                        <span className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{m.label}</span>
+                        <span className="text-(--color-text-secondary)">{muscleGroupIcons[m.icon]}</span>
+                        <span className="text-sm font-medium text-(--color-text)">{m.label}</span>
                       </button>
                     ))}
                   </div>

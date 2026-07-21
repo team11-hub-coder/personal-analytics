@@ -2,25 +2,34 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useUser } from "@/hooks/useAuth";
-import { addFocusSession, updateFocusSession, incrementCompletedCount, getLocalISOString } from "@/lib/focus";
+import { addFocusSession, getLocalISOString } from "@/lib/focus";
 import { pageHeader, card } from "@/lib/theme";
 import FocusTimer from "@/components/focus/FocusTimer";
 import FocusHistory from "@/components/focus/FocusHistory";
 import CameraMonitor from "@/components/focus/CameraMonitor";
 import { ToastContainer, useToasts } from "@/components/focus/Toast";
 import { playAlertSound, playSongAlert, requestNotificationPermission, sendNotification } from "@/lib/alerts";
+import { sendAbsenceNotification } from "@/lib/email";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { FocusPhase, FocusSession } from "@/types";
+import type { FocusPhase, FocusSession, DistractionEvent } from "@/types";
 import type { DetectionResult } from "@/lib/detection";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Timer, Camera, Eye, EyeOff, X, Play, Pause, RotateCcw, SkipForward, Clock } from "lucide-react";
+import { Timer, Camera, Eye, EyeOff, X, Play, Pause, RotateCcw, SkipForward, Clock, Tag } from "lucide-react";
 
 const DEFAULT_FOCUS = 25;
 const DEFAULT_BREAK = 5;
 const POMODORO_LONG_BREAK = 15 * 60;
 const POMODORO_SESSIONS = 4;
+
+// Alert thresholds (hardcoded for demo)
+const ABSENT_THRESHOLD_MS = 20_000;  // 20 seconds (faster detection)
+const EMAIL_THRESHOLD_MS = 90_000;   // 90 seconds (faster email alert)
+const ALERT_COOLDOWN_MS = 15_000;    // 15 seconds between alerts
+
+// Preset tags
+const PRESET_TAGS = ["Study", "Work", "Reading", "Coding", "Writing", "Creative", "Other"];
 
 export default function FocusClient() {
   const { data: user, isLoading: userLoading } = useUser();
@@ -38,6 +47,9 @@ export default function FocusClient() {
   const [title, setTitle] = useState("");
   const [focusMinutes, setFocusMinutes] = useState(DEFAULT_FOCUS);
   const [breakMinutes, setBreakMinutes] = useState(DEFAULT_BREAK);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [customTag, setCustomTag] = useState("");
+  const [notes, setNotes] = useState("");
 
   // Stopwatch state
   const [stopwatchElapsed, setStopwatchElapsed] = useState(0);
@@ -48,9 +60,8 @@ export default function FocusClient() {
   const lastAlertRef = useRef<number>(0);
   const absentStartRef = useRef<number | null>(null);
   const phoneStartRef = useRef<number | null>(null);
-
-  // Serious Focus: fixed 15s warning threshold (user cannot change)
-  const SERIOUS_FOCUS_THRESHOLD = 15_000;
+  const distractionLogRef = useRef<DistractionEvent[]>([]);
+  const emailSentRef = useRef(false);
 
   // Escalating alerts
   const distractionCountRef = useRef(0);
@@ -62,7 +73,6 @@ export default function FocusClient() {
   const sessionStartRef = useRef<string | null>(null);
   const currentDurationRef = useRef(0);
   const currentSessionIdRef = useRef<string | null>(null);
-  const reusedSessionIdRef = useRef<string | null>(null);
 
   // Overlay state
   const [newSessionOverlayOpen, setNewSessionOverlayOpen] = useState(false);
@@ -83,9 +93,9 @@ export default function FocusClient() {
     [focusMinutes, breakMinutes]
   );
 
-  // Create session in DB immediately
-  const createSession = useCallback(
-    async (sessionTitle: string, durationMin: number) => {
+  // Save session to DB (called on complete/reset only)
+  const saveSession = useCallback(
+    async (sessionTitle: string, durationMin: number, completed: boolean, completedCount: number) => {
       if (!user) return;
       const result = await addFocusSession({
         user_id: user.id,
@@ -93,38 +103,23 @@ export default function FocusClient() {
         mode,
         duration_minutes: durationMin,
         break_minutes: mode === "stopwatch" ? 0 : breakMinutes,
-        completed: false,
-        completed_count: 0,
+        completed,
+        completed_count: completedCount,
         started_at: sessionStartRef.current ?? getLocalISOString(),
-        ended_at: null,
+        ended_at: getLocalISOString(),
+        tags: selectedTags,
+        notes,
+        distraction_log: distractionLogRef.current,
       });
       if (result.data) {
         currentSessionIdRef.current = result.data.id;
       }
       triggerHistoryRefresh();
     },
-    [user, mode, breakMinutes, triggerHistoryRefresh]
+    [user, mode, breakMinutes, selectedTags, notes, triggerHistoryRefresh]
   );
 
-  // Update existing session
-  const updateSession = useCallback(
-    async (completed: boolean) => {
-      if (!currentSessionIdRef.current) return;
-      await updateFocusSession(currentSessionIdRef.current, {
-        completed,
-        ended_at: getLocalISOString(),
-      });
-      // Clear the reused session template reference once completed
-      if (completed) {
-        reusedSessionIdRef.current = null;
-      }
-      currentSessionIdRef.current = null;
-      triggerHistoryRefresh();
-    },
-    [triggerHistoryRefresh]
-  );
-
-  // Transition phase — handles focus→break→focus cycles (single DB record)
+  // Transition phase — handles focus→break→focus cycles (local only, no DB)
   const transitionPhase = useCallback(
     async (currentPhase: FocusPhase) => {
       if (mode === "pomodoro") {
@@ -133,24 +128,10 @@ export default function FocusClient() {
           playSongAlert("focus");
           sendNotification("Focus Complete", "Time for a break!", "focus-complete");
 
-          // Increment completed_count if using recent Session data
-          if (reusedSessionIdRef.current) {
-            await incrementCompletedCount(reusedSessionIdRef.current);
-            await updateFocusSession(reusedSessionIdRef.current, { completed: true });
-            triggerHistoryRefresh();
-          }
-
-          if (currentSessionIdRef.current) {
-            await updateFocusSession(currentSessionIdRef.current, { completed: true });
-            triggerHistoryRefresh();
-          }
-
           const nextCount = sessionCount + 1;
           setSessionCount(nextCount);
           if (nextCount % POMODORO_SESSIONS === 0) {
             // All 4 focus blocks done — session complete
-            await updateSession(true);
-            triggerHistoryRefresh();
             const dur = getPhaseDuration("longBreak");
             setPhase("longBreak");
             setTimeRemaining(dur);
@@ -166,18 +147,6 @@ export default function FocusClient() {
           playSongAlert("break");
           sendNotification("Break Over", "Time to focus!", "break-over");
 
-          // Increment completed_count if using recent Session data
-          if (reusedSessionIdRef.current) {
-            await incrementCompletedCount(reusedSessionIdRef.current);
-            await updateFocusSession(reusedSessionIdRef.current, { completed: true });
-            triggerHistoryRefresh();
-          }
-
-          if (currentSessionIdRef.current) {
-            await updateFocusSession(currentSessionIdRef.current, { completed: true });
-            triggerHistoryRefresh();
-          }
-
           const dur = getPhaseDuration("focus");
           setPhase("focus");
           setTimeRemaining(dur);
@@ -187,7 +156,7 @@ export default function FocusClient() {
         }
       }
     },
-    [mode, sessionCount, getPhaseDuration, updateSession, triggerHistoryRefresh]
+    [mode, sessionCount, getPhaseDuration]
   );
 
   // Timer tick — countdown
@@ -245,19 +214,21 @@ export default function FocusClient() {
   // Pause
   const handlePause = () => setIsRunning(false);
 
-  // Reset
+  // Reset — save to DB only if session completed
   const handleReset = async () => {
     setIsRunning(false);
     if (mode === "stopwatch") {
-      // Stopwatch: only save to DB if ran for more than 1 minute
+      // Stopwatch: save if ran for more than 1 minute
       if (stopwatchElapsed > 60) {
-        await createSession(title || "Stopwatch", Math.floor(stopwatchElapsed / 60));
+        await saveSession(title || "Stopwatch", Math.floor(stopwatchElapsed / 60), true, 1);
       }
       setStopwatchElapsed(0);
     } else {
-      // Pomodoro: count if completed at least one focus block
+      // Pomodoro: save if completed at least one focus block
       const completedAny = sessionCount > 0 || phase !== "focus";
-      await updateSession(completedAny);
+      if (completedAny) {
+        await saveSession(title || "Focus Session", focusMinutes, true, sessionCount);
+      }
       const dur = focusMinutes * 60;
       setTimeRemaining(dur);
       setTotalTime(dur);
@@ -267,8 +238,12 @@ export default function FocusClient() {
     setPhase("idle");
     sessionStartRef.current = null;
     currentSessionIdRef.current = null;
-    reusedSessionIdRef.current = null;
     setTitle("");
+    setSelectedTags([]);
+    setCustomTag("");
+    setNotes("");
+    distractionLogRef.current = [];
+    emailSentRef.current = false;
   };
 
   // Skip
@@ -296,8 +271,8 @@ export default function FocusClient() {
     }
   };
 
-  // Start session from overlay
-  const handleStartFromOverlay = async () => {
+  // Start session from overlay — local timer only
+  const handleStartFromOverlay = () => {
     const errors: { title?: string; focus?: string; brk?: string } = {};
     if (!title.trim()) errors.title = "Title is required";
     if (focusMinutes < 1 || focusMinutes > 120) errors.focus = "Must be 1–120 min";
@@ -317,14 +292,14 @@ export default function FocusClient() {
     setSessionCount(0);
     sessionStartRef.current = getLocalISOString();
     currentDurationRef.current = dur;
+    distractionLogRef.current = [];
+    emailSentRef.current = false;
     setIsRunning(true);
-    await createSession(title, focusMinutes);
   };
 
-  // Reuse session — stores original ID to track completion count
-  const handleReuseSession = (session: FocusSession) => {
+  // Reuse session — creates new session based on the reused one
+  const handleReuseSession = async (session: FocusSession) => {
     if (isRunning) return;
-    reusedSessionIdRef.current = session.id;
     if (session.mode === "stopwatch") {
       setMode("stopwatch");
       setTitle(session.title);
@@ -379,15 +354,48 @@ export default function FocusClient() {
     (result: DetectionResult) => {
       if (!isRunning) return;
       const now = Date.now();
-      if (now - lastAlertRef.current < 20000) return;
+      if (now - lastAlertRef.current < ALERT_COOLDOWN_MS) return;
 
       // Track face absence
       if (!result.faceDetected) {
         if (!absentStartRef.current) absentStartRef.current = now;
-        else if (now - absentStartRef.current > SERIOUS_FOCUS_THRESHOLD) {
+        else if (now - absentStartRef.current > ABSENT_THRESHOLD_MS) {
           lastAlertRef.current = now;
+          const durationSec = Math.floor((now - absentStartRef.current) / 1000);
           absentStartRef.current = null;
           triggerEscalatingAlert("Face away");
+
+          // Log distraction event
+          distractionLogRef.current.push({
+            type: "absent",
+            timestamp: getLocalISOString(),
+            durationSec,
+            action: "warning",
+          });
+        }
+
+        // Check for absence threshold (2 minutes)
+        if (absentStartRef.current && now - absentStartRef.current > EMAIL_THRESHOLD_MS && !emailSentRef.current) {
+          emailSentRef.current = true;
+          const durationMinutes = Math.floor((now - absentStartRef.current) / 60000);
+
+          // Send absence notification
+          if (user?.email) {
+            sendAbsenceNotification({
+              userEmail: user.email,
+              sessionTitle: title || "Focus Session",
+              durationMinutes,
+              timestamp: getLocalISOString(),
+            });
+          }
+
+          // Log absence event
+          distractionLogRef.current.push({
+            type: "absent",
+            timestamp: getLocalISOString(),
+            durationSec: Math.floor((now - absentStartRef.current) / 1000),
+            action: "email",
+          });
         }
       } else {
         absentStartRef.current = null;
@@ -396,10 +404,19 @@ export default function FocusClient() {
       // Track phone usage
       if (result.phoneDetected) {
         if (!phoneStartRef.current) phoneStartRef.current = now;
-        else if (now - phoneStartRef.current > SERIOUS_FOCUS_THRESHOLD) {
+        else if (now - phoneStartRef.current > ABSENT_THRESHOLD_MS) {
           lastAlertRef.current = now;
+          const durationSec = Math.floor((now - phoneStartRef.current) / 1000);
           phoneStartRef.current = null;
           triggerEscalatingAlert("Phone detected");
+
+          // Log distraction event
+          distractionLogRef.current.push({
+            type: "phone",
+            timestamp: getLocalISOString(),
+            durationSec,
+            action: "warning",
+          });
         }
       } else {
         phoneStartRef.current = null;
@@ -410,7 +427,7 @@ export default function FocusClient() {
         distractionCountRef.current = 0;
       }
     },
-    [isRunning, triggerEscalatingAlert]
+    [isRunning, triggerEscalatingAlert, user, title]
   );
 
   const handleToggleCamera = async () => {
@@ -419,6 +436,22 @@ export default function FocusClient() {
   };
 
   const handleCameraAlert = useCallback(() => {}, []);
+
+  // Tag toggle
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  // Add custom tag
+  const addCustomTag = () => {
+    if (customTag.trim() && !selectedTags.includes(customTag.trim())) {
+      setSelectedTags((prev) => [...prev, customTag.trim()]);
+      setCustomTag("");
+    }
+  };
+
   const isIdle = phase === "idle";
 
   if (userLoading) {
@@ -481,7 +514,7 @@ export default function FocusClient() {
           <h1 className={pageHeader.title}>Focus</h1>
           <p className={pageHeader.subtitle}>Stay focused with timed sessions</p>
         </div>
-        <Timer size={24} style={{ color: "var(--color-text-secondary)" }} />
+        <Timer size={24} className="text-(--color-text-secondary)" />
       </div>
 
       {/* Mode selector */}
@@ -491,7 +524,7 @@ export default function FocusClient() {
           disabled={isRunning}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-colors ${
             mode === "pomodoro"
-              ? "bg-[#8b6914] text-white"
+              ? "bg-(--color-primary) text-white"
               : "bg-(--color-surface-hover) text-(--color-text-secondary) hover:bg-(--color-border)"
           } ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
         >
@@ -503,7 +536,7 @@ export default function FocusClient() {
           disabled={isRunning}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-colors ${
             mode === "stopwatch"
-              ? "bg-[#8b6914] text-white"
+              ? "bg-(--color-primary) text-white"
               : "bg-(--color-surface-hover) text-(--color-text-secondary) hover:bg-(--color-border)"
           } ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
         >
@@ -531,7 +564,7 @@ export default function FocusClient() {
             disabled={isIdle}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               cameraEnabled
-                ? "bg-[#8b6914] text-white"
+                ? "bg-(--color-primary) text-white"
                 : isIdle
                   ? "bg-(--color-surface-hover) text-(--color-text-muted) cursor-not-allowed opacity-50"
                   : "bg-(--color-surface-hover) text-(--color-text-secondary) hover:bg-(--color-border)"
@@ -560,7 +593,7 @@ export default function FocusClient() {
           <Button
             size="icon"
             onClick={isRunning ? handlePause : handleStart}
-            className="h-16 w-16 rounded-full bg-[#8b6914] hover:bg-[#a07d1a] text-white"
+            className="h-16 w-16 rounded-full bg-(--color-primary) hover:bg-(--color-primary-hover) text-white"
           >
             {isRunning ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
           </Button>
@@ -602,22 +635,19 @@ export default function FocusClient() {
       {newSessionOverlayOpen && (
         <div className="fixed inset-0 z-[100]">
           <div className="absolute inset-0 bg-black/60" onClick={() => setNewSessionOverlayOpen(false)} />
-          <div
-            className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto shadow-2xl"
-            style={{ backgroundColor: "var(--color-bg)" }}
-          >
+          <div className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto shadow-2xl bg-(--color-bg)">
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
-              <h2 className="text-base font-bold" style={{ color: "var(--color-text)" }}>New Focus Session</h2>
-              <button onClick={() => setNewSessionOverlayOpen(false)} className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)]">
-                <X size={20} style={{ color: "var(--color-text-secondary)" }} />
+            <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-(--color-border) bg-(--color-bg)">
+              <h2 className="text-base font-bold text-(--color-text)">New Focus Session</h2>
+              <button onClick={() => setNewSessionOverlayOpen(false)} className="p-2 rounded-lg hover:bg-(--color-surface-hover)">
+                <X size={20} className="text-(--color-text-secondary)" />
               </button>
             </div>
 
             {/* Form */}
             <div className="p-4 space-y-4">
               <div className="space-y-1">
-                <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Session Title</Label>
+                <Label className="text-xs text-(--color-text-secondary)">Session Title</Label>
                 <Input
                   type="text"
                   placeholder="e.g. Deep work, Reading, Study..."
@@ -627,9 +657,75 @@ export default function FocusClient() {
                 {formErrors.title && <p className="text-xs text-red-500">{formErrors.title}</p>}
               </div>
 
+              {/* Tags */}
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-1.5 text-(--color-text-secondary)">
+                  <Tag size={12} />
+                  Tags
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_TAGS.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        selectedTags.includes(tag)
+                          ? "bg-(--color-primary) text-white"
+                          : "bg-(--color-surface-hover) text-(--color-text-secondary) hover:bg-(--color-border)"
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Custom tag..."
+                    value={customTag}
+                    onChange={(e) => setCustomTag(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addCustomTag()}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={addCustomTag}
+                    disabled={!customTag.trim()}
+                  >
+                    Add
+                  </Button>
+                </div>
+                {selectedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {selectedTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-(--color-primary)/10 text-(--color-primary)"
+                      >
+                        {tag}
+                        <button onClick={() => toggleTag(tag)} className="hover:text-(--color-primary-hover)">&times;</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-1">
+                <Label className="text-xs text-(--color-text-secondary)">Notes</Label>
+                <textarea
+                  placeholder="What are you working on?"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-(--color-primary) bg-(--color-surface) border-(--color-border) text-(--color-text)"
+                />
+              </div>
+
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1">
-                  <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Focus (min)</Label>
+                  <Label className="text-xs text-(--color-text-secondary)">Focus (min)</Label>
                   <Input
                     type="number"
                     min={1}
@@ -641,7 +737,7 @@ export default function FocusClient() {
                   {formErrors.focus && <p className="text-xs text-red-500">{formErrors.focus}</p>}
                 </div>
                 <div className="flex-1 space-y-1">
-                  <Label className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Break (min)</Label>
+                  <Label className="text-xs text-(--color-text-secondary)">Break (min)</Label>
                   <Input
                     type="number"
                     min={1}
@@ -655,16 +751,16 @@ export default function FocusClient() {
               </div>
 
               {/* Preview */}
-              <div className="p-4 rounded-lg" style={{ backgroundColor: "var(--color-surface-hover)" }}>
+              <div className="p-4 rounded-lg bg-(--color-surface-hover)">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Total time</span>
-                  <span className="text-sm font-medium" style={{ color: "var(--color-text)" }}>
+                  <span className="text-sm text-(--color-text-secondary)">Total time</span>
+                  <span className="text-sm font-medium text-(--color-text)">
                     {focusMinutes + breakMinutes} min
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Focus / Break</span>
-                  <span className="text-sm font-medium" style={{ color: "var(--color-text)" }}>
+                  <span className="text-sm text-(--color-text-secondary)">Focus / Break</span>
+                  <span className="text-sm font-medium text-(--color-text)">
                     {focusMinutes}m / {breakMinutes}m
                   </span>
                 </div>
@@ -680,7 +776,7 @@ export default function FocusClient() {
                 </Button>
                 <Button
                   onClick={handleStartFromOverlay}
-                  className="flex-1 bg-[#8b6914] hover:bg-[#a07d1a] text-white"
+                  className="flex-1 bg-(--color-primary) hover:bg-(--color-primary-hover) text-white"
                 >
                   Start Session
                 </Button>
@@ -691,10 +787,7 @@ export default function FocusClient() {
       )}
       {/* Screen flash for critical alerts */}
       {screenFlash && (
-        <div
-          className="fixed inset-0 z-[200] pointer-events-none animate-pulse"
-          style={{ backgroundColor: "rgba(239, 68, 68, 0.15)" }}
-        />
+        <div className="fixed inset-0 z-[200] pointer-events-none animate-pulse bg-red-500/15" />
       )}
     </div>
   );

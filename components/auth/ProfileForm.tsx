@@ -58,10 +58,6 @@ export default function ProfileForm() {
 
   useEffect(() => {
     if (profile) {
-      // Auto-detect only if profile has never been set (empty/null values)
-      const needsDetectTimezone = !profile.timezone;
-      const needsDetectCurrency = !profile.currency;
-
       const browserTimezone = detectTimezone();
       const browserCurrency = getCurrencyFromTimezone(browserTimezone);
 

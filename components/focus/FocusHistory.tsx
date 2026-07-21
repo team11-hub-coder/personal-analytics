@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getFocusSessions, deleteFocusSession, updateFocusSession } from "@/lib/focus";
-import type { FocusSession } from "@/types";
+import type { FocusSession, DistractionEvent } from "@/types";
 import { card, sectionHeader } from "@/lib/theme";
-import { Timer, Clock, RotateCcw, Pencil, Trash2, Loader2, Plus } from "lucide-react";
+import { Timer, Clock, RotateCcw, Pencil, Trash2, Loader2, Plus, Tag, ChevronDown, ChevronUp, AlertTriangle, Mail, UserX, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,13 @@ function formatDuration(minutes: number): string {
   const hrs = Math.floor(minutes / 60);
   const mins = minutes % 60;
   return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+}
+
+function formatDurationSec(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
 }
 
 const modeIcons: Record<string, typeof Timer> = {
@@ -57,6 +64,7 @@ export default function FocusHistory({ onReuseSession, onNewSession, refreshKey 
   const [editDuration, setEditDuration] = useState(25);
   const [editBreak, setEditBreak] = useState(5);
   const [saving, setSaving] = useState(false);
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
   const loadSessions = useCallback(() => {
     getFocusSessions(20).then((result) => {
@@ -101,6 +109,10 @@ export default function FocusHistory({ onReuseSession, onNewSession, refreshKey 
     }
     setEditingSession(null);
     setSaving(false);
+  };
+
+  const toggleExpand = (sessionId: string) => {
+    setExpandedSessionId((prev) => (prev === sessionId ? null : sessionId));
   };
 
   if (loading) {
@@ -160,52 +172,44 @@ export default function FocusHistory({ onReuseSession, onNewSession, refreshKey 
           No focus sessions yet. Start your first one!
         </p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-                <th className="text-left py-2 pr-4 font-medium" style={{ color: "var(--color-text-secondary)" }}>Title</th>
-                <th className="text-left py-2 pr-4 font-medium" style={{ color: "var(--color-text-secondary)" }}>Mode</th>
-                <th className="text-left py-2 pr-4 font-medium" style={{ color: "var(--color-text-secondary)" }}>Duration</th>
-                <th className="text-left py-2 pr-4 font-medium" style={{ color: "var(--color-text-secondary)" }}>Started</th>
-                <th className="text-left py-2 pr-4 font-medium" style={{ color: "var(--color-text-secondary)" }}>Status</th>
-                <th className="text-center py-2 pr-4 font-medium" style={{ color: "var(--color-text-secondary)" }}>Completed</th>
-                <th className="py-2 text-right font-medium" style={{ color: "var(--color-text-secondary)" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map((session) => {
-                const Icon = modeIcons[session.mode] || Timer;
-                const color = modeColors[session.mode] || "#8b6914";
-                const isDeleting = deletingId === session.id;
+        <div className="mt-4 space-y-2">
+          {sessions.map((session) => {
+            const Icon = modeIcons[session.mode] || Timer;
+            const color = modeColors[session.mode] || "#8b6914";
+            const isDeleting = deletingId === session.id;
+            const isExpanded = expandedSessionId === session.id;
+            const tags = session.tags ?? [];
+            const notes = session.notes ?? "";
+            const distractionLog = session.distraction_log ?? [];
+            const hasDistractions = distractionLog.length > 0;
 
-                return (
-                  <tr
-                    key={session.id}
-                    style={{ borderBottom: "1px solid var(--color-border)" }}
+            return (
+              <div
+                key={session.id}
+                className="rounded-lg border"
+                style={{ borderColor: "var(--color-border)" }}
+              >
+                {/* Main row */}
+                <div
+                  className="flex items-center gap-3 p-3 cursor-pointer hover:bg-(--color-surface-hover) transition-colors"
+                  onClick={() => (tags.length > 0 || notes || hasDistractions) && toggleExpand(session.id)}
+                >
+                  {/* Icon */}
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: `${color}20` }}
                   >
-                    <td className="py-3 pr-4">
-                      <span className="font-medium" style={{ color: "var(--color-text)" }}>
+                    <Icon size={16} style={{ color }} />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium truncate" style={{ color: "var(--color-text)" }}>
                         {session.title || "Untitled"}
                       </span>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <div className="flex items-center gap-1.5">
-                        <Icon size={14} style={{ color }} />
-                        <span className="capitalize" style={{ color: "var(--color-text-secondary)" }}>
-                          {session.mode}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 pr-4" style={{ color: "var(--color-text-secondary)" }}>
-                      {formatDuration(session.duration_minutes)}
-                    </td>
-                    <td className="py-3 pr-4" style={{ color: "var(--color-text-muted)" }}>
-                      {formatSessionDate(session.started_at)}
-                    </td>
-                    <td className="py-3 pr-4">
                       <span
-                        className="text-xs px-2 py-0.5 rounded-full"
+                        className="text-xs px-1.5 py-0.5 rounded"
                         style={{
                           backgroundColor: session.completed ? "#ecfdf5" : "#fef2f2",
                           color: session.completed ? "#10b981" : "#ef4444",
@@ -213,58 +217,154 @@ export default function FocusHistory({ onReuseSession, onNewSession, refreshKey 
                       >
                         {session.completed ? "Done" : "Partial"}
                       </span>
-                    </td>
-                    <td className="py-3 pr-4 text-center">
-                      <span
-                        className="text-xs font-medium px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: (session.completed_count ?? 0) > 0 ? "#eff6ff" : "var(--color-surface-hover)",
-                          color: (session.completed_count ?? 0) > 0 ? "#3b82f6" : "var(--color-text-muted)",
-                        }}
-                      >
-                        {session.completed_count ?? 0}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {/* Reuse */}
-                        {onReuseSession && (
-                          <button
-                            onClick={() => onReuseSession(session)}
-                            className="p-1.5 rounded-md hover:bg-(--color-surface-hover) transition-colors"
-                            title="Reuse session"
-                          >
-                            <RotateCcw size={14} style={{ color: "var(--color-text-secondary)" }} />
-                          </button>
-                        )}
-                        {/* Edit */}
-                        <button
-                          onClick={() => handleEditOpen(session)}
-                          className="p-1.5 rounded-md hover:bg-(--color-surface-hover) transition-colors"
-                          title="Edit session"
-                        >
-                          <Pencil size={14} style={{ color: "var(--color-text-secondary)" }} />
-                        </button>
-                        {/* Delete */}
-                        <button
-                          onClick={() => handleDelete(session.id)}
-                          disabled={isDeleting}
-                          className="p-1.5 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50"
-                          title="Delete session"
-                        >
-                          {isDeleting ? (
-                            <Loader2 size={14} className="animate-spin" style={{ color: "#ef4444" }} />
-                          ) : (
-                            <Trash2 size={14} style={{ color: "#ef4444" }} />
-                          )}
-                        </button>
+                    </div>
+
+                    {/* Tags */}
+                    {tags.length > 0 && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Tag size={10} style={{ color: "var(--color-text-muted)" }} />
+                        <div className="flex flex-wrap gap-1">
+                          {tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="text-xs px-1.5 py-0.5 rounded-full"
+                              style={{ backgroundColor: "#8b691420", color: "#8b6914" }}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    )}
+
+                    {/* Notes preview */}
+                    {notes && !isExpanded && (
+                      <p className="text-xs mt-1 truncate" style={{ color: "var(--color-text-muted)" }}>
+                        {notes}
+                      </p>
+                    )}
+
+                    {/* Distraction badge */}
+                    {hasDistractions && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <AlertTriangle size={10} style={{ color: "#d97706" }} />
+                        <span className="text-xs" style={{ color: "#d97706" }}>
+                          {distractionLog.length} distraction{distractionLog.length > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Meta */}
+                  <div className="text-right">
+                    <div className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                      {formatDuration(session.duration_minutes)}
+                    </div>
+                    <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                      {formatSessionDate(session.started_at)}
+                    </div>
+                  </div>
+
+                  {/* Expand arrow */}
+                  {(tags.length > 0 || notes || hasDistractions) && (
+                    <div style={{ color: "var(--color-text-muted)" }}>
+                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1">
+                    {onReuseSession && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onReuseSession(session); }}
+                        className="p-1.5 rounded-md hover:bg-(--color-surface-hover) transition-colors"
+                        title="Reuse session"
+                      >
+                        <RotateCcw size={14} style={{ color: "var(--color-text-secondary)" }} />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEditOpen(session); }}
+                      className="p-1.5 rounded-md hover:bg-(--color-surface-hover) transition-colors"
+                      title="Edit session"
+                    >
+                      <Pencil size={14} style={{ color: "var(--color-text-secondary)" }} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDelete(session.id); }}
+                      disabled={isDeleting}
+                      className="p-1.5 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50"
+                      title="Delete session"
+                    >
+                      {isDeleting ? (
+                        <Loader2 size={14} className="animate-spin" style={{ color: "#ef4444" }} />
+                      ) : (
+                        <Trash2 size={14} style={{ color: "#ef4444" }} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded section */}
+                {isExpanded && (
+                  <div
+                    className="px-3 pb-3 pt-1 border-t"
+                    style={{ borderColor: "var(--color-border)" }}
+                  >
+                    {/* Notes */}
+                    {notes && (
+                      <div className="mb-3">
+                        <h4 className="text-xs font-medium mb-1" style={{ color: "var(--color-text-secondary)" }}>
+                          Notes
+                        </h4>
+                        <p className="text-sm whitespace-pre-wrap" style={{ color: "var(--color-text)" }}>
+                          {notes}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Distraction Log */}
+                    {hasDistractions && (
+                      <div>
+                        <h4 className="text-xs font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
+                          Distraction Log
+                        </h4>
+                        <div className="space-y-2">
+                          {distractionLog.map((event, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 p-2 rounded-lg text-xs"
+                              style={{
+                                backgroundColor: event.action === "email" ? "#fef2f2" : "#fffbeb",
+                              }}
+                            >
+                              {event.type === "phone" ? (
+                                <Phone size={12} style={{ color: event.action === "email" ? "#ef4444" : "#d97706" }} />
+                              ) : (
+                                <UserX size={12} style={{ color: event.action === "email" ? "#ef4444" : "#d97706" }} />
+                              )}
+                              <span style={{ color: "var(--color-text)" }}>
+                                {event.type === "phone" ? "Phone" : "Absent"}
+                              </span>
+                              <span style={{ color: "var(--color-text-muted)" }}>
+                                {formatDurationSec(event.durationSec)}
+                              </span>
+                              <span style={{ color: "var(--color-text-muted)" }}>
+                                {new Date(event.timestamp).toLocaleTimeString()}
+                              </span>
+                              {event.action === "email" && (
+                                <Mail size={10} style={{ color: "#ef4444" }} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

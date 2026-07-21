@@ -152,6 +152,13 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export interface DistractionEvent {
+  type: "absent" | "phone";
+  timestamp: string;
+  durationSec: number;
+  action: "warning" | "email";
+}
+
 export interface FocusSession {
   id: string;
   user_id: string;
@@ -163,6 +170,9 @@ export interface FocusSession {
   completed_count: number;
   started_at: string;
   ended_at: string | null;
+  tags: string[];
+  notes: string;
+  distraction_log: DistractionEvent[];
   created_at: string;
 }
 

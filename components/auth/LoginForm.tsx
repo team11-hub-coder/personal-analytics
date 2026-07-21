@@ -47,7 +47,7 @@ export default function LoginForm() {
             type="email"
             placeholder="you@example.com"
             {...register("email")}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#c9a96e]/50 focus:border-[#c9a96e]/50 transition-all"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/50 focus:border-[var(--color-accent)]/50 transition-all"
           />
           {errors.email && (
             <p className="text-xs text-red-400 mt-1">
@@ -65,7 +65,7 @@ export default function LoginForm() {
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               {...register("password")}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[#c9a96e]/50 focus:border-[#c9a96e]/50 transition-all"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/50 focus:border-[var(--color-accent)]/50 transition-all"
             />
             <button
               type="button"
@@ -83,7 +83,7 @@ export default function LoginForm() {
           <div className="mt-2 text-right">
             <Link
               href="/forgot-password"
-              className="text-xs text-[#c9a96e]/70 hover:text-[#c9a96e] transition-colors"
+              className="text-xs text-[var(--color-accent)]/70 hover:text-[var(--color-accent)] transition-colors"
             >
               Forgot password?
             </Link>
@@ -93,7 +93,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={login.isPending}
-          className="w-full bg-gradient-to-r from-[#8b6914] to-[#c9a96e] text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[#8b6914]/25"
+          className="w-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-[var(--color-primary)]/25"
         >
           {login.isPending ? (
             <Loader2 size={16} className="animate-spin" />
@@ -107,7 +107,7 @@ export default function LoginForm() {
       <div className="mt-6 text-center">
         <Link
           href="/register"
-          className="text-sm text-[#c9a96e] hover:text-[#8b6914] transition-colors"
+          className="text-sm text-[var(--color-accent)] hover:text-[var(--color-primary)] transition-colors"
         >
           Don&apos;t have an account? Sign up
         </Link>

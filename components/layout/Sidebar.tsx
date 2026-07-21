@@ -80,13 +80,14 @@ export default function Sidebar() {
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-slate-400 hover:text-white p-1"
+            aria-label="Close sidebar"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto hide-scrollbar">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto hide-scrollbar" aria-label="Main navigation">
           {links.map((link) => {
             const isActive =
               link.href === "/dashboard"
@@ -109,7 +110,7 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div className="p-4 border-t border-slate-700 space-y-1">
-          <button onClick={toggleTheme} className={sidebar.footerButton}>
+          <button onClick={toggleTheme} className={sidebar.footerButton} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
             {theme === "light" ? "Dark Mode" : "Light Mode"}
           </button>
