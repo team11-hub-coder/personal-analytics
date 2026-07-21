@@ -278,7 +278,6 @@ serve(async (req) => {
 ```
 
 - [ ] **Step 3: Commit**
-
 ```bash
 git add supabase/functions/aggregate-daily/index.ts
 git commit -m "feat: add aggregate-daily Edge Function"

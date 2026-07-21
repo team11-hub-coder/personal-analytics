@@ -138,6 +138,12 @@ export const reminderSchema = z.object({
   repeat: z.enum(["none", "daily", "weekly", "monthly"]),
 });
 
+export const focusSessionSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  tags: z.array(z.string()).default([]),
+  notes: z.string().default(""),
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -153,3 +159,4 @@ export type TaskFormData = z.infer<typeof taskSchema>;
 export type TaskCategoryFormData = z.infer<typeof taskCategorySchema>;
 export type InlineTaskFormData = z.infer<typeof inlineTaskSchema>;
 export type ReminderFormData = z.infer<typeof reminderSchema>;
+export type FocusSessionFormData = z.infer<typeof focusSessionSchema>;

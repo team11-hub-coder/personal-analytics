@@ -391,8 +391,8 @@ export default function WorkoutHistory({ refreshKey }: WorkoutHistoryProps) {
 
                     <div className="flex items-center gap-2">
                       {estCalories > 0 && (
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-600">
-                          🔥 {estCalories} cal
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 flex items-center gap-1">
+                          <Flame size={12} /> {estCalories} cal
                         </span>
                       )}
                       <button
