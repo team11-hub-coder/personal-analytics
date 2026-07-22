@@ -152,7 +152,7 @@ export default function TaskForm({ task, onSuccess, onCancel }: TaskFormProps) {
             {...register("category_id", { valueAsNumber: true })}
             className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
           >
-            <option value="">No category</option>
+            <option value={0}>No category</option>
             {categories?.map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {cat.name}

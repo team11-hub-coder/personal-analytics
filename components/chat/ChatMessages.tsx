@@ -43,6 +43,8 @@ interface ChatMessagesProps {
   optimisticMessage?: string | null;
   /** Callback when a suggestion chip is clicked */
   onSuggestionClick: (s: string) => void;
+  /** Ref for auto-scrolling to bottom */
+  scrollRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function ChatMessages({
@@ -52,6 +54,7 @@ export default function ChatMessages({
   error,
   optimisticMessage,
   onSuggestionClick,
+  scrollRef,
 }: ChatMessagesProps) {
   /**
    * Format ISO date string to readable time
@@ -224,6 +227,9 @@ export default function ChatMessages({
           </div>
         </div>
       )}
+
+      {/* Scroll anchor for auto-scroll */}
+      {scrollRef && <div ref={scrollRef} />}
     </div>
   );
 }

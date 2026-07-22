@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { useUser } from "./useAuth";
@@ -102,6 +103,7 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: async (updates: {
       display_name?: string;
+      avatar_url?: string | null;
       daily_calorie_target?: number;
       monthly_budget_goal?: number;
       currency?: string;
@@ -115,6 +117,82 @@ export function useUpdateProfile() {
         .eq("id", user.id);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+  });
+}
+
+// Hook to get a signed URL for a private storage path
+export function useSignedAvatarUrl(path: string | null | undefined) {
+  const supabase = createClient();
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!path) {
+      setSignedUrl(null);
+      return;
+    }
+
+    const getSignedUrl = async () => {
+      const { data, error } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 3600); // 1 hour expiry
+
+      if (!error && data) {
+        setSignedUrl(data.signedUrl);
+      }
+    };
+
+    getSignedUrl();
+  }, [path, supabase]);
+
+  return signedUrl;
+}
+
+export function useUploadAvatar() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const user = await getAuthenticatedUser(supabase);
+
+      // Upload to Supabase Storage with unique path to avoid cache issues
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}/avatar.${Date.now()}.${fileExt}`;
+
+      // Clean up old avatars for this user
+      const { data: oldFiles } = await supabase.storage
+        .from("avatars")
+        .list(user.id);
+
+      if (oldFiles && oldFiles.length > 0) {
+        const oldPaths = oldFiles.map((f) => `${user.id}/${f.name}`);
+        await supabase.storage.from("avatars").remove(oldPaths);
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        if (uploadError.message.includes("bucket") || uploadError.message.includes("not found")) {
+          throw new Error("Storage bucket 'avatars' not found. Please create it in Supabase Dashboard → Storage.");
+        }
+        throw uploadError;
+      }
+
+      // Update profile with file path (not URL — bucket is private)
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: filePath })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      return filePath;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });

@@ -1,6 +1,7 @@
 // Timezone to currency mapping
 export const timezoneCurrencyMap: Record<string, string> = {
   "Asia/Yangon": "MMK",
+  "Asia/Rangoon": "MMK",
   "Asia/Tokyo": "JPY",
   "Asia/Singapore": "SGD",
   "Asia/Shanghai": "CNY",
@@ -44,7 +45,9 @@ export const currencies = [
 // Detect user's timezone from browser
 export function detectTimezone(): string {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // Normalize legacy aliases to current IANA names
+    return tz === "Asia/Rangoon" ? "Asia/Yangon" : tz;
   } catch {
     return "Asia/Yangon"; // fallback
   }

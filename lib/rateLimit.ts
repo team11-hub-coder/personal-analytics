@@ -119,7 +119,6 @@ export async function checkRateLimit(
   timezone: string
 ): Promise<RateLimitResult> {
   const { startOfDayUTC, startOfHourUTC } = getLocalNow(timezone);
-
   const { count: dailyUsed } = await supabase
     .from("chat_usage")
     .select("id", { count: "exact", head: true })
@@ -135,6 +134,7 @@ export async function checkRateLimit(
     };
   }
 
+  // Check hourly limit
   const { count: hourlyUsed } = await supabase
     .from("chat_usage")
     .select("id", { count: "exact", head: true })
@@ -162,19 +162,20 @@ export async function checkRateLimit(
  */
 export async function recordUsage(
   userId: string,
-  label: string,
-  responseLength: number,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  userMessage: string,
+  assistantMessage: string,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  model = "gemini-3-flash-preview"
 ): Promise<void> {
   try {
-    const inputTokens = Math.ceil(label.length / 4);
-    const outputTokens = Math.ceil(responseLength / 4);
+    const inputTokens = Math.ceil(userMessage.length / 4);
+    const outputTokens = Math.ceil(assistantMessage.length / 4);
 
     const { error } = await supabase.from("chat_usage").insert({
       user_id: userId,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
-      model: "gemini-3-flash-preview",
+      model,
     });
 
     if (error) {

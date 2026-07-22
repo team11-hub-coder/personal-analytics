@@ -1,14 +1,11 @@
-"use client";
+import type { Metadata } from "next";
+import ChatClient from "./ChatClient";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+export const metadata: Metadata = {
+  title: "Chat | Personal Analytics",
+  description: "Chat with your AI assistant for insights and help.",
+};
 
 export default function ChatPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/dashboard");
-  }, [router]);
-
-  return null;
+  return <ChatClient />;
 }

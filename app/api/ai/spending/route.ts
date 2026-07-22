@@ -148,7 +148,7 @@ Generate spending insights as JSON only.`);
     const insights = JSON.parse(jsonMatch[0]);
 
     // Record usage for cost tracking
-    await recordUsage(user.id, "spending-insights", responseText.length, supabase);
+    await recordUsage(user.id, "spending-insights", responseText, supabase, "gemini-3-flash-preview");
 
     return Response.json({
       insights: insights.insights || [],

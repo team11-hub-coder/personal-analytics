@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { useProfile, useUpdateProfile, useUploadAvatar, useSignedAvatarUrl } from "@/hooks/useProfile";
 import { useTransactions } from "@/hooks/useExpenses";
 import { useWorkouts } from "@/hooks/useWorkouts";
 import { useTasks } from "@/hooks/useTasks";
 import { useReminders } from "@/hooks/useReminders";
 import { button, card, pageHeader } from "@/lib/theme";
-import { User, Save, Target, Loader2, Globe } from "lucide-react";
+import { User, Save, Target, Loader2, Globe, Camera } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { currencies, timezones, detectTimezone, getCurrencyFromTimezone } from "@/lib/currency";
 
@@ -27,7 +27,14 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 export default function ProfileForm() {
   const { data: profile, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
+  const uploadAvatar = useUploadAvatar();
   const [saved, setSaved] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const signedAvatarUrl = useSignedAvatarUrl(profile?.avatar_url);
+  const avatarPath = profile?.avatar_url;
+  const finalAvatarSrc =
+    avatarPreview || (avatarPath && avatarPath.startsWith("http") ? avatarPath : signedAvatarUrl) || "";
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -92,6 +99,31 @@ export default function ProfileForm() {
     });
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      return;
+    }
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to Supabase
+    uploadAvatar.mutate(file);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-8 max-w-2xl">
@@ -101,18 +133,15 @@ export default function ProfileForm() {
         </div>
         <div className={card.base}>
           <div className="flex items-center gap-4 mb-6">
-            <Skeleton className="w-16 h-16 rounded-full" />
+            <Skeleton className="w-20 h-20 rounded-full" />
             <div className="space-y-2">
               <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-24" />
             </div>
           </div>
           <div className="space-y-4">
             <Skeleton className="h-4 w-24" />
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
+            <Skeleton className="h-10 w-full" />
           </div>
           <div className="space-y-4 mt-6">
             <Skeleton className="h-4 w-32" />
@@ -138,10 +167,32 @@ export default function ProfileForm() {
         {/* Profile Card */}
         <div className={card.base}>
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full bg-[#e8dfd4] flex items-center justify-center">
-              <User
-                size={32}
-                className="text-[#8b6914]"
+            <div className="relative group">
+              <div className="w-20 h-20 rounded-full bg-[#e8dfd4] flex items-center justify-center overflow-hidden border-2 border-[var(--color-border)]">
+                {finalAvatarSrc ? (
+                  <img src={finalAvatarSrc} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={36} className="text-[#8b6914]" />
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadAvatar.isPending}
+                className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+              >
+                {uploadAvatar.isPending ? (
+                  <Loader2 size={20} className="text-white animate-spin" />
+                ) : (
+                  <Camera size={20} className="text-white" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
               />
             </div>
             <div>
@@ -162,36 +213,20 @@ export default function ProfileForm() {
               <h3 className="text-sm font-semibold text-[var(--color-text-secondary)] mb-3">
                 Account
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Display Name
-                  </label>
-                  <input
-                    type="text"
-                    {...register("display_name")}
-                    className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
-                  />
-                  {errors.display_name && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {errors.display_name.message}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={profile?.email || ""}
-                    disabled
-                    className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm opacity-50 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Email is managed by your account provider
+              <div>
+                <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  {...register("display_name")}
+                  className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm"
+                />
+                {errors.display_name && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.display_name.message}
                   </p>
-                </div>
+                )}
               </div>
             </div>
 

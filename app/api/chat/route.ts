@@ -156,7 +156,7 @@ ${context}`,
     const assistantMessage = result.response.text();
 
     // Record usage for tracking
-    await recordUsage(user.id, lastMessage.content, assistantMessage.length, supabase);
+    await recordUsage(user.id, lastMessage.content, assistantMessage, supabase, "gemini-3-flash-preview");
 
     // Get updated usage stats
     const updatedUsage = await getUsageStats(user.id, supabase, userTimezone);

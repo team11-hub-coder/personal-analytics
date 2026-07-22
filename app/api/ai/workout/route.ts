@@ -135,7 +135,7 @@ Generate the workout plan as JSON only.`);
     const workout = JSON.parse(jsonMatch[0]);
 
     // Record usage for cost tracking
-    await recordUsage(user.id, "workout-generator", responseText.length, supabase);
+    await recordUsage(user.id, `workout: ${validationResult.data.muscleGroup}`, responseText, supabase, "gemini-3-flash-preview");
 
     return Response.json({ workout });
   } catch (error) {

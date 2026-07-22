@@ -184,6 +184,26 @@
   --color-accent-gradient-to: #818cf8;
 }
 
+/* Native select dark-theme support */
+.dark select {
+  color-scheme: dark;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+.dark select option,
+.dark select optgroup {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+.dark select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+.dark select::placeholder {
+  color: var(--color-text-muted);
+}
+
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

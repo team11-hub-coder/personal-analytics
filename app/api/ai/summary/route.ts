@@ -136,7 +136,7 @@ Generate the daily summary as JSON only.`);
     const summary = JSON.parse(jsonMatch[0]);
 
     // Record usage for cost tracking
-    await recordUsage(user.id, "daily-summary", responseText.length, supabase);
+    await recordUsage(user.id, "daily-summary", responseText, supabase, "gemini-3-flash-preview");
 
     return Response.json({
       summary: summary.summary,
