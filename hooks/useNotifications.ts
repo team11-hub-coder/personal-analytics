@@ -30,7 +30,7 @@ function formatTimeAgo(dateStr: string): string {
   return text;
 }
 
-export function useNotifications() {
+export function useNotifications(dismissedIds: Set<number> = new Set()) {
   const { data: reminders = [] } = useReminders();
 
   const notifications = useMemo(() => {
@@ -41,6 +41,7 @@ export function useNotifications() {
 
     for (const reminder of reminders) {
       if (!reminder.is_active) continue;
+      if (dismissedIds.has(reminder.id)) continue;
 
       const remindDate = new Date(reminder.remind_at);
 
@@ -58,7 +59,7 @@ export function useNotifications() {
     });
 
     return result;
-  }, [reminders]);
+  }, [reminders, dismissedIds]);
 
   const overdueCount = useMemo(
     () => notifications.filter((n) => n.type === "overdue").length,

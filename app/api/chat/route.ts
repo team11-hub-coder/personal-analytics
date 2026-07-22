@@ -2,8 +2,15 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
-import { checkRateLimit, recordUsage, getUsageStats } from "@/lib/rateLimit";
-import { getLocalNow } from "@/lib/dates";
+import {
+  checkRateLimit,
+  recordUsage,
+  getLocalNow,
+  getUserTimezone,
+  getUsageStats,
+  DAILY_LIMIT,
+  HOURLY_LIMIT,
+} from "@/lib/rateLimit";
 
 /**
  * Chat API Route
@@ -81,19 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch user's timezone from profile
-    let userTimezone = "UTC";
-    try {
-      const { data: tzProfile } = await supabase
-        .from("profiles")
-        .select("timezone")
-        .eq("id", user.id)
-        .single();
-      if (tzProfile?.timezone) {
-        userTimezone = tzProfile.timezone;
-      }
-    } catch {
-      // Fallback to UTC
-    }
+    const userTimezone = await getUserTimezone(user.id, supabase);
 
     // Check rate limits
     const rateLimitResult = await checkRateLimit(user.id, supabase, userTimezone);
@@ -101,7 +96,10 @@ export async function POST(request: NextRequest) {
       return Response.json(
         {
           error: rateLimitResult.error,
-          usage: await getUsageStats(user.id, supabase, userTimezone),
+          usage: {
+            daily: { used: rateLimitResult.dailyUsed, limit: DAILY_LIMIT },
+            hourly: { used: rateLimitResult.hourlyUsed, limit: HOURLY_LIMIT },
+          },
         },
         { status: 429 }
       );
@@ -158,7 +156,7 @@ ${context}`,
     const assistantMessage = result.response.text();
 
     // Record usage for tracking
-    await recordUsage(user.id, lastMessage.content, assistantMessage, supabase);
+    await recordUsage(user.id, lastMessage.content, assistantMessage, supabase, "gemini-3-flash-preview");
 
     // Get updated usage stats
     const updatedUsage = await getUsageStats(user.id, supabase, userTimezone);

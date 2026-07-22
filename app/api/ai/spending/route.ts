@@ -1,7 +1,13 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { checkRateLimit, recordUsage } from "@/lib/rateLimit";
+import {
+  checkRateLimit,
+  recordUsage,
+  getUserTimezone,
+  DAILY_LIMIT,
+  HOURLY_LIMIT,
+} from "@/lib/rateLimit";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
 
@@ -18,20 +24,20 @@ export async function POST(_request: NextRequest) {
       return Response.json({ error: "AI service unavailable" }, { status: 500 });
     }
 
-    // Check rate limits
-    let userTimezone = "UTC";
-    try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("timezone")
-        .eq("id", user.id)
-        .single();
-      if (profile?.timezone) userTimezone = profile.timezone;
-    } catch { /* fallback to UTC */ }
-
-    const rateLimit = await checkRateLimit(user.id, supabase, userTimezone);
-    if (!rateLimit.allowed) {
-      return Response.json({ error: rateLimit.error }, { status: 429 });
+    // Rate limit check
+    const userTimezone = await getUserTimezone(user.id, supabase);
+    const rateLimitResult = await checkRateLimit(user.id, supabase, userTimezone);
+    if (!rateLimitResult.allowed) {
+      return Response.json(
+        {
+          error: rateLimitResult.error,
+          usage: {
+            daily: { used: rateLimitResult.dailyUsed, limit: DAILY_LIMIT },
+            hourly: { used: rateLimitResult.hourlyUsed, limit: HOURLY_LIMIT },
+          },
+        },
+        { status: 429 }
+      );
     }
 
     // Fetch recent transactions (last 30 days)
@@ -141,8 +147,8 @@ Generate spending insights as JSON only.`);
 
     const insights = JSON.parse(jsonMatch[0]);
 
-    // Record usage
-    await recordUsage(user.id, "spending analysis", responseText, supabase, "gemini-3-flash-preview");
+    // Record usage for cost tracking
+    await recordUsage(user.id, "spending-insights", responseText, supabase, "gemini-3-flash-preview");
 
     return Response.json({
       insights: insights.insights || [],

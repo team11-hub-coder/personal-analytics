@@ -23,7 +23,8 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ className = "" }: NotificationBellProps) {
-  const { notifications, overdueCount } = useNotifications();
+  const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
+  const { notifications, overdueCount } = useNotifications(dismissedIds);
   const [open, setOpen] = useState(false);
   const [permission, setPermission] = useState<
     "unsupported" | NotificationPermission
@@ -102,7 +103,12 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
               </div>
               {notifications.length > 0 && (
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setDismissedIds(
+                      (prev) => new Set([...prev, ...notifications.map((n) => n.reminder.id)])
+                    );
+                    setOpen(false);
+                  }}
                   className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
                 >
                   <CheckCheck size={13} />
