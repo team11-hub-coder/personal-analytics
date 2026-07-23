@@ -22,12 +22,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChatMessage } from "@/types";
 
-/** Quick suggestion chips for new users */
+/** Quick suggestion chips for new users — covers all modules */
 const suggestions = [
   "How much did I spend?",
   "What are my budgets?",
-  "Summarize my transactions",
-  "Give me a summary",
+  "Summarize my recent workouts",
+  "What tasks are pending?",
+  "Any upcoming reminders?",
+  "Give me a full summary",
 ];
 
 interface ChatMessagesProps {
