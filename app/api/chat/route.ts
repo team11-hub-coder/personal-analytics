@@ -91,7 +91,14 @@ export async function POST(request: NextRequest) {
     const userTimezone = await getUserTimezone(user.id, supabase);
 
     // Check rate limits
-    const rateLimitResult = await checkRateLimit(user.id, supabase, userTimezone);
+    let rateLimitResult;
+    try {
+      rateLimitResult = await checkRateLimit(user.id, supabase, userTimezone);
+    } catch (rlError) {
+      console.error("Rate limit check failed (chat_usage table missing?):", rlError);
+      // Allow the request if rate limiting is unavailable
+      rateLimitResult = { allowed: true, dailyUsed: 0, hourlyUsed: 0 };
+    }
     if (!rateLimitResult.allowed) {
       return Response.json(
         {
@@ -155,20 +162,35 @@ ${context}`,
     const result = await chat.sendMessage(lastMessage.content);
     const assistantMessage = result.response.text();
 
-    // Record usage for tracking
-    await recordUsage(user.id, lastMessage.content, assistantMessage, supabase, "gemini-3-flash-preview");
+    // Record usage for tracking (non-blocking)
+    recordUsage(user.id, lastMessage.content, assistantMessage, supabase, "gemini-3-flash-preview").catch((e) =>
+      console.error("Failed to record usage:", e)
+    );
 
     // Get updated usage stats
-    const updatedUsage = await getUsageStats(user.id, supabase, userTimezone);
+    let updatedUsage;
+    try {
+      updatedUsage = await getUsageStats(user.id, supabase, userTimezone);
+    } catch (usError) {
+      console.error("Usage stats query failed (chat_usage table missing?):", usError);
+      updatedUsage = {
+        daily: { used: 0, limit: DAILY_LIMIT },
+        hourly: { used: 0, limit: HOURLY_LIMIT },
+      };
+    }
 
     return Response.json({
       message: assistantMessage,
       usage: updatedUsage,
     });
   } catch (error) {
-    console.error("Chat API error:", error);
+    // Log the full error details for debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : "";
+    console.error("Chat API error:", errorMessage);
+    if (errorStack) console.error("Chat API stack:", errorStack);
 
-    // Return generic error to avoid leaking internal details
+    // Return generic error to avoid leaking internal details to the client
     return Response.json(
       { error: "Failed to process your request. Please try again." },
       { status: 500 }

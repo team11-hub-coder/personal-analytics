@@ -169,7 +169,7 @@ export default function ChatPanel({
 
       {/* Clear chat confirmation dialog */}
       <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <DialogContent>
+        <DialogContent className="z-[100]">
           <DialogHeader>
             <DialogTitle>Clear Chat History</DialogTitle>
             <DialogDescription>
